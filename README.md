@@ -25,8 +25,8 @@
 If you enjoy using **Vwish Player** or find our engineering helpful, consider sponsoring the project to support active development and new features:
 
 - 💖 **GitHub Sponsors**: [github.com/sponsors/besaoct](https://github.com/sponsors/besaoct)
-- ☕ **Buy Me a Coffee**: [buymeacoffee.com/vecvel](https://buymeacoffee.com/vecvel)
-- 🌐 **Website**: [vecvel.com](https://vecvel.com)
+- ☕ **Buy Me a Coffee**: [buymeacoffee.com/besaoct](https://buymeacoffee.com/besaoct)
+- 🌐 **GitHub Profile**: [github.com/besaoct](https://github.com/besaoct)
 
 ---
 
