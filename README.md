@@ -136,5 +136,5 @@ vwish_player/
 
 ## 📄 License & Conduct
 
-- **License**: Proprietary — Copyright © 2026 [Vecvel](https://vecvel.com). All rights reserved. See [`LICENSE`](LICENSE) for terms.
+- **License**: Proprietary — Copyright © 2026 besaoct. All rights reserved. See [`LICENSE`](LICENSE) for terms.
 - **Code of Conduct**: See [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
