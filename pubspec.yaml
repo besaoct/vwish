@@ -1,0 +1,52 @@
+name: vwish_player
+description: "Vwish Video Player - Ultra-high performance cross-platform media player."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.0.0
+  shared_preferences: ^2.2.3
+
+  # Internal Modular Packages
+  vwish_domain:
+    path: packages/vwish_domain
+  vwish_engine:
+    path: packages/vwish_engine
+  vwish_data:
+    path: packages/vwish_data
+  vwish_ui_kit:
+    path: packages/vwish_ui_kit
+  vwish_platform:
+    path: packages/vwish_platform
+  vwish_features:
+    path: packages/vwish_features
+
+  # Native Playback Engine Bindings
+  media_kit: ^1.1.10
+  media_kit_video: ^1.2.4
+  media_kit_libs_video: ^1.0.7
+  media_kit_libs_android_video: ^1.3.8
+  media_kit_libs_ios_video: ^1.1.4
+
+  # Platform & Hardware Integration
+  window_manager: ^0.3.8
+  wakelock_plus: ^1.2.8
+  desktop_drop: ^0.4.4
+  file_selector: ^0.9.4
+  volume_controller: ^3.6.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
