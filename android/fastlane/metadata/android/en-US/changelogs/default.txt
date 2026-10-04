@@ -1,0 +1,6 @@
+Initial release of Vwish 1.0.0.
+• Ultra-high performance HDR media player with hardware acceleration.
+• Wide format support: HEVC, AV1, MKV, MP4, HLS, DASH, and more.
+• Real-time video filters and live color grading (contrast, brightness, saturation).
+• Real-time stream diagnostics, speed test, and link validation.
+• 100% on-device sandbox and privacy first.

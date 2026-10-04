@@ -23,6 +23,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 Upload metadata, store images, and screenshots to Google Play Store without binary
 
+### android release_notes
+
+```sh
+[bundle exec] fastlane android release_notes
+```
+
+Upload release notes / changelogs to Google Play Store
+
 ### android build
 
 ```sh
