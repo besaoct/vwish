@@ -2,25 +2,29 @@ import os
 import sys
 import base64
 import subprocess
+import shutil
 from PIL import Image
 
 WORKSPACE = os.path.dirname(os.path.abspath(__file__))
 PUB_DIR = os.path.join(WORKSPACE, "publishing")
 SRC_DIR = os.path.join(PUB_DIR, "source_assets")
-OUT_6_9 = os.path.join(PUB_DIR, "screenshots", "iphone_6_9")
-OUT_6_5 = os.path.join(PUB_DIR, "screenshots", "iphone_6_5")
+OUT_IPAD = os.path.join(PUB_DIR, "screenshots", "ipad_12_9")
+IOS_FASTLANE_DIR = os.path.join(WORKSPACE, "ios", "fastlane", "screenshots", "en-US")
+ANDROID_FASTLANE_10INCH = os.path.join(WORKSPACE, "android", "fastlane", "metadata", "android", "en-US", "images", "tenInchScreenshots")
 
-os.makedirs(OUT_6_9, exist_ok=True)
-os.makedirs(OUT_6_5, exist_ok=True)
+os.makedirs(OUT_IPAD, exist_ok=True)
+os.makedirs(IOS_FASTLANE_DIR, exist_ok=True)
+os.makedirs(ANDROID_FASTLANE_10INCH, exist_ok=True)
 
 def to_base64(path):
     with open(path, "rb") as f:
         return "data:image/png;base64," + base64.b64encode(f.read()).decode("utf-8")
 
-mockup_b64 = to_base64(os.path.join(SRC_DIR, "mockup.png"))
+mockup_ipad_b64 = to_base64(os.path.join(SRC_DIR, "mockup-ipad.png"))
 
 slides = [
     {
+        "index": 1,
         "id": "01_hero_4k",
         "eyebrow": "ULTRA-HD PLAYBACK ENGINE",
         "headline_line1": "Play everything.",
@@ -34,6 +38,7 @@ slides = [
         "chip_meta": "HDR10 · HLS · DASH · LOCAL FILES"
     },
     {
+        "index": 2,
         "id": "02_equalizer_bass",
         "eyebrow": "STUDIO AUDIO ENGINE",
         "headline_line1": "Studio sound.",
@@ -47,6 +52,7 @@ slides = [
         "chip_meta": "+6.0 dB BASS BOOST · NORMALIZATION"
     },
     {
+        "index": 3,
         "id": "03_speed_diagnostics",
         "eyebrow": "STREAM INTELLIGENCE",
         "headline_line1": "Zero buffer.",
@@ -60,6 +66,7 @@ slides = [
         "chip_meta": "69 ms PING · 4K STREAM READY"
     },
     {
+        "index": 4,
         "id": "04_color_mastering",
         "eyebrow": "PRO MASTERING CONTROLS",
         "headline_line1": "Every frame,",
@@ -73,6 +80,7 @@ slides = [
         "chip_meta": "GAMMA · CONTRAST · A-B REPEAT"
     },
     {
+        "index": 5,
         "id": "05_privacy_storage",
         "eyebrow": "LOCAL STORAGE & PRIVACY",
         "headline_line1": "Your media.",
@@ -103,8 +111,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }}
 
   body {{
-    width: 1320px;
-    height: 2868px;
+    width: 2048px;
+    height: 2732px;
     overflow: hidden;
     position: relative;
     background: #07080B;
@@ -124,11 +132,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .grid {{
     position: absolute;
     inset: 0;
-    background-image: radial-gradient(circle at 1.5px 1.5px, rgba(255, 255, 255, 0.12) 1.3px, transparent 1.9px);
-    background-size: 44px 44px;
-    background-position: 22px 10px;
-    -webkit-mask: radial-gradient(ellipse 62% 42% at 50% 30%, #000 10%, rgba(0,0,0,0.35) 55%, transparent 80%),
-                 linear-gradient(180deg, #000 0, #000 220px, transparent 250px, transparent 720px, #000 760px);
+    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.12) 1.5px, transparent 2.2px);
+    background-size: 56px 56px;
+    background-position: 28px 14px;
+    -webkit-mask: radial-gradient(ellipse 70% 45% at 50% 30%, #000 10%, rgba(0,0,0,0.35) 55%, transparent 80%),
+                 linear-gradient(180deg, #000 0, #000 240px, transparent 270px, transparent 720px, #000 760px);
     -webkit-mask-composite: source-in;
     mask-composite: intersect;
     pointer-events: none;
@@ -149,10 +157,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    top: -260px;
-    width: 1720px;
-    height: 520px;
-    filter: blur(35px);
+    top: -300px;
+    width: 2400px;
+    height: 600px;
+    filter: blur(45px);
     background: radial-gradient(ellipse 34% 50% at 50% 50%, rgba(130,124,255,0.55), rgba(130,124,255,0.12) 55%, transparent 75%);
     pointer-events: none;
   }}
@@ -160,9 +168,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   /* Indigo-violet light beam from top */
   .beam-wide {{
     position: absolute;
-    inset: -240px;
-    filter: blur(46px);
-    background: conic-gradient(from 160deg at 900px 60px, transparent 0deg,
+    inset: -300px;
+    filter: blur(55px);
+    background: conic-gradient(from 160deg at 1400px 80px, transparent 0deg,
       rgba(110,106,255,0.10) 9deg, rgba(150,120,255,0.22) 20deg, rgba(110,106,255,0.10) 31deg, transparent 40deg);
     -webkit-mask: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, #000 30%, #000 55%, transparent 88%);
     mix-blend-mode: screen;
@@ -171,9 +179,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   .beam-core {{
     position: absolute;
-    inset: -240px;
-    filter: blur(16px);
-    background: conic-gradient(from 173.5deg at 900px 60px, transparent 0deg,
+    inset: -300px;
+    filter: blur(20px);
+    background: conic-gradient(from 173.5deg at 1400px 80px, transparent 0deg,
       rgba(150,146,255,0.20) 4deg, rgba(196,188,255,0.35) 6.5deg, rgba(150,146,255,0.20) 9deg, transparent 13deg);
     -webkit-mask: linear-gradient(180deg, rgba(0,0,0,0.28) 0px, rgba(0,0,0,0.34) 860px, #000 1010px, #000 1500px, transparent 2300px);
     mix-blend-mode: screen;
@@ -192,19 +200,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     position: absolute;
     top: 0;
     left: 0;
-    width: 1320px;
+    width: 2048px;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding-top: 140px;
+    padding-top: 130px;
     z-index: 10;
   }}
 
   /* Eyebrow - Figtree only, NO double slashes (//) */
   .eyebrow {{
     font-family: 'Figtree', sans-serif;
-    font-size: 26px;
+    font-size: 30px;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
@@ -217,16 +225,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .headline {{
     font-family: 'Figtree', sans-serif;
     font-weight: 800;
-    font-size: 144px;
+    font-size: 148px;
     line-height: 1.04;
     letter-spacing: -0.035em;
-    margin-top: 28px;
+    margin-top: 24px;
     padding-bottom: 0.08em;
     background: linear-gradient(180deg, #FFFFFF 0%, #FFFFFF 38%, #B9BDC9 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    max-width: 1200px;
+    max-width: 1800px;
   }}
 
   .headline .lit {{
@@ -238,72 +246,49 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   .subline {{
     font-family: 'Figtree', sans-serif;
-    font-size: 40px;
+    font-size: 44px;
     font-weight: 400;
     line-height: 1.34;
     letter-spacing: -0.01em;
     color: #B4B9C6;
-    margin-top: 24px;
-    max-width: 1080px;
+    margin-top: 20px;
+    max-width: 1500px;
   }}
 
-  /* Floor Line & Floor Reflection */
-  .floor-line {{
+  /* iPad Stage */
+  .ipad-stage {{
     position: absolute;
-    top: 2776px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent 4%, rgba(185,182,255,0.45) 30%, rgba(210,208,255,0.7) 50%, rgba(185,182,255,0.45) 70%, transparent 96%);
-    z-index: 5;
-  }}
-
-  .floor-glow {{
-    position: absolute;
-    left: 60px;
-    top: 2690px;
-    width: 1200px;
-    height: 180px;
-    filter: blur(28px);
-    background: radial-gradient(ellipse at 50% 50%, rgba(124,120,255,0.32), transparent 70%);
-    pointer-events: none;
-    z-index: 4;
-  }}
-
-  /* Phone Container */
-  .phone-stage {{
-    position: absolute;
-    left: 170px;
-    top: 780px;
-    width: 980px;
-    height: 1996px;
+    left: 338px;
+    top: 730px;
+    width: 1372px;
+    height: 1900px;
     z-index: 20;
   }}
 
   /* Bezel Halo & Bloom */
-  .phone-halo {{
+  .ipad-halo {{
     position: absolute;
     inset: -6px;
-    border-radius: 13.4% / 6.6%;
-    filter: blur(10px);
+    border-radius: 46px;
+    filter: blur(12px);
     background: linear-gradient(180deg, rgba(200,196,255,0.95) 0%, rgba(160,156,255,0.55) 6%, rgba(143,140,255,0) 26%);
     pointer-events: none;
     z-index: 1;
   }}
 
-  .phone-bloom {{
+  .ipad-bloom {{
     position: absolute;
     left: 10%;
     right: 10%;
     top: -120px;
-    height: 420px;
-    filter: blur(70px);
+    height: 480px;
+    filter: blur(75px);
     background: radial-gradient(ellipse at 50% 60%, rgba(143,140,255,0.55), transparent 70%);
     pointer-events: none;
     z-index: 2;
   }}
 
-  .phone-wrapper {{
+  .ipad-wrapper {{
     position: relative;
     width: 100%;
     height: 100%;
@@ -317,21 +302,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     width: 100%;
     height: 100%;
     display: block;
-    z-index: 10;
+    z-index: 20;
     pointer-events: none;
   }}
 
   /* Inner Screen */
   .screen-frame {{
     position: absolute;
-    left: 5.088%;
-    top: 2.209%;
-    width: 89.824%;
-    height: 95.581%;
-    border-radius: 68px;
+    left: 5.0%;
+    top: 3.7%;
+    width: 90.0%;
+    height: 92.6%;
+    border-radius: 36px;
     overflow: hidden;
     background: #000;
-    z-index: 20;
+    z-index: 10;
   }}
 
   .screen-img {{
@@ -342,13 +327,36 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     display: block;
   }}
 
-  /* Reflection under phone */
+  /* Floor Line & Floor Reflection */
+  .floor-line {{
+    position: absolute;
+    top: 2630px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 4%, rgba(185,182,255,0.45) 30%, rgba(210,208,255,0.7) 50%, rgba(185,182,255,0.45) 70%, transparent 96%);
+    z-index: 5;
+  }}
+
+  .floor-glow {{
+    position: absolute;
+    left: 200px;
+    top: 2540px;
+    width: 1648px;
+    height: 220px;
+    filter: blur(35px);
+    background: radial-gradient(ellipse at 50% 50%, rgba(124,120,255,0.35), transparent 70%);
+    pointer-events: none;
+    z-index: 4;
+  }}
+
+  /* Reflection under iPad */
   .reflection {{
     position: absolute;
-    left: 170px;
-    top: 2778px;
-    width: 980px;
-    height: 220px;
+    left: 338px;
+    top: 2632px;
+    width: 1372px;
+    height: 260px;
     transform: scaleY(-1);
     opacity: 0.18;
     -webkit-mask: linear-gradient(0deg, #000 0%, transparent 45%);
@@ -360,69 +368,69 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   .reflection img {{
     width: 100%;
-    height: 1996px;
+    height: 1900px;
     display: block;
   }}
 
-  /* Dark Glass Tech Spec Card - Smaller, Sleeker, Placed Top 20% or Bottom 20% */
+  /* Dark Glass Tech Spec Card */
   .tech-chip {{
     position: absolute;
-    width: 440px;
-    border-radius: 20px;
-    background: linear-gradient(180deg, rgba(22,25,35,0.90), rgba(13,15,22,0.85));
-    backdrop-filter: blur(28px) saturate(140%);
-    -webkit-backdrop-filter: blur(28px) saturate(140%);
+    width: 580px;
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(22,25,35,0.92), rgba(13,15,22,0.88));
+    backdrop-filter: blur(32px) saturate(140%);
+    -webkit-backdrop-filter: blur(32px) saturate(140%);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.14),
                 0 0 0 1px rgba(0,0,0,0.65),
                 0 25px 50px -10px rgba(0,0,0,0.85),
                 0 0 35px -8px rgba(124,120,255,0.25);
-    padding: 18px 24px;
+    padding: 24px 32px;
     z-index: 35;
     border: 1px solid rgba(206,202,255,0.24);
   }}
 
   .tech-chip.left {{
-    left: -50px;
+    left: -70px;
   }}
 
   .tech-chip.right {{
-    right: -50px;
+    right: -70px;
   }}
 
   .chip-status {{
     font-family: 'Figtree', sans-serif;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 700;
     color: #B3AFFF;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 10px;
+    margin-bottom: 8px;
   }}
 
   .chip-status .dot {{
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     background: #8F8CFF;
-    box-shadow: 0 0 10px #8F8CFF;
+    box-shadow: 0 0 12px #8F8CFF;
   }}
 
   .chip-title {{
     font-family: 'Figtree', sans-serif;
-    font-size: 26px;
+    font-size: 34px;
     font-weight: 700;
     letter-spacing: -0.02em;
     color: #F4F5F8;
     line-height: 1.15;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }}
 
   .chip-meta {{
     font-family: 'Figtree', sans-serif;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 500;
     color: #8B91A0;
     letter-spacing: 0.04em;
@@ -452,18 +460,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- Phone Stage -->
-  <div class="phone-stage">
-    <div class="phone-halo"></div>
-    <div class="phone-bloom"></div>
-    <div class="phone-wrapper">
+  <!-- iPad Stage -->
+  <div class="ipad-stage">
+    <div class="ipad-halo"></div>
+    <div class="ipad-bloom"></div>
+    <div class="ipad-wrapper">
       <div class="screen-frame">
         <img class="screen-img" src="{screen_img}">
       </div>
-      <img class="mockup-img" src="{mockup_b64}">
+      <img class="mockup-img" src="{mockup_ipad_b64}">
     </div>
 
-    <!-- Tech Spec Glass Card - Placed over screen at top 20% or bottom 20% -->
+    <!-- Tech Spec Glass Card -->
     <div class="tech-chip {chip_pos}" style="{chip_vertical}">
       <div class="chip-status">
         <span class="dot"></span> {chip_status}
@@ -477,26 +485,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="floor-line"></div>
   <div class="floor-glow"></div>
   <div class="reflection">
-    <img src="{mockup_b64}">
+    <img src="{mockup_ipad_b64}">
   </div>
 </body>
 </html>
 """
 
-if __name__ == "__main__":
-    # Render slides (optionally filtered by command line argument)
-    target_filter = sys.argv[1].lower() if len(sys.argv) > 1 else None
-
+def generate_ipad_screenshots(filter_id=None):
+    chrome_bin = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    
     for slide in slides:
-        if target_filter and target_filter not in slide["id"].lower():
+        if filter_id and filter_id not in slide["id"].lower():
             continue
+            
+        print(f"Rendering iPad slide {slide['index']}: {slide['id']}...")
         html_content = HTML_TEMPLATE.format(
             eyebrow=slide["eyebrow"],
             headline_line1=slide["headline_line1"],
             headline_line2=slide["headline_line2"],
             subline=slide["subline"],
             screen_img=slide["screen_img"],
-            mockup_b64=mockup_b64,
+            mockup_ipad_b64=mockup_ipad_b64,
             chip_pos=slide["chip_pos"],
             chip_vertical=slide["chip_vertical"],
             chip_status=slide["chip_status"],
@@ -504,31 +513,42 @@ if __name__ == "__main__":
             chip_meta=slide["chip_meta"]
         )
         
-        html_path = f"/tmp/{slide['id']}.html"
+        html_path = f"/tmp/ipad_{slide['id']}.html"
         with open(html_path, "w") as f:
             f.write(html_content)
             
-        out_png_6_9 = os.path.join(OUT_6_9, f"{slide['id']}.png")
+        out_png = os.path.join(OUT_IPAD, f"{slide['id']}.png")
         
         cmd = [
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            chrome_bin,
             "--headless",
             "--disable-gpu",
             "--hide-scrollbars",
-            "--window-size=1320,2868",
+            "--window-size=2048,2732",
             "--virtual-time-budget=3500",
-            f"--screenshot={out_png_6_9}",
+            f"--screenshot={out_png}",
             html_path
         ]
         subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Generate 6.5" downscaled version (1284 x 2778)
-        im = Image.open(out_png_6_9)
-        im_6_5 = im.resize((1284, 2778), Image.Resampling.LANCZOS)
-        out_png_6_5 = os.path.join(OUT_6_5, f"{slide['id']}.png")
-        im_6_5.save(out_png_6_5, "PNG", optimize=True)
+        # Verify output size
+        im = Image.open(out_png)
+        print(f"  Generated {out_png} -> {im.size} ({os.path.getsize(out_png):,} bytes)")
         
-        print(f"Generated {slide['id']}: 6.9\" ({im.size}) and 6.5\" ({im_6_5.size})")
+        # Copy to iOS Fastlane directory with standard naming
+        ios_dest_name = f"{slide['index']}_iPad_12.9_{slide['id']}.png"
+        ios_dest = os.path.join(IOS_FASTLANE_DIR, ios_dest_name)
+        shutil.copyfile(out_png, ios_dest)
+        print(f"  -> Copied to iOS Fastlane: {ios_dest_name}")
 
-    print("All screenshots generated successfully with Figtree font, no double slashes, and compact top/bottom 20% overlays!")
+        # Copy to Android Fastlane 10-inch screenshots directory
+        android_dest_name = f"{slide['index']}.png"
+        android_dest = os.path.join(ANDROID_FASTLANE_10INCH, android_dest_name)
+        shutil.copyfile(out_png, android_dest)
+        print(f"  -> Copied to Android 10-inch Fastlane: {android_dest_name}")
 
+    print("\nAll iPad screenshots successfully generated and synced to Fastlane directories!")
+
+if __name__ == "__main__":
+    arg = sys.argv[1].lower() if len(sys.argv) > 1 else None
+    generate_ipad_screenshots(arg)
