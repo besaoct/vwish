@@ -15,6 +15,14 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 ## Android
 
+### android metadata
+
+```sh
+[bundle exec] fastlane android metadata
+```
+
+Upload metadata, store images, and screenshots to Google Play Store without binary
+
 ### android build
 
 ```sh

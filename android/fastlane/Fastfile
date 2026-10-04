@@ -40,8 +40,10 @@ platform :android do
   desc "Upload metadata, store images, and screenshots to Google Play Store without binary"
   lane :metadata do
     upload_to_play_store(
+      track: "alpha",
       skip_upload_aab: true,
       skip_upload_apk: true,
+      skip_upload_changelogs: true,
       skip_upload_metadata: false,
       skip_upload_images: false,
       skip_upload_screenshots: false
