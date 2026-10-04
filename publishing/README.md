@@ -49,11 +49,16 @@ publishing/
 │       └── 05_privacy_storage.png
 │
 ├── source_assets/                    # Native simulator captures and frames
-│   ├── 01_home.png                   # Home library screen with Now Playing
-│   ├── 02_equalizer.png              # 10-band EQ curve with Bass Boost
-│   ├── 03_speed_test.png             # Network speedometer test results
-│   ├── 04_color_grade.png            # Real-time color adjustments modal
-│   ├── 05_data_usage.png             # Data usage & bandwidth calculator
+│   ├── 01_home.png                   # iPhone: Home library screen
+│   ├── 02_equalizer.png              # iPhone: 10-band EQ curve
+│   ├── 03_speed_test.png             # iPhone: Network speed test
+│   ├── 04_color_grade.png            # iPhone: Color adjustments
+│   ├── 05_data_usage.png             # iPhone: Data usage calculator
+│   ├── ipad_01_home.png              # iPad: Home screen with Now Playing
+│   ├── ipad_02_settings.png          # iPad: Settings & Seek Controls
+│   ├── ipad_03_speed_test.png        # iPad: 4K Network Benchmark
+│   ├── ipad_04_color_grade.png       # iPad: Real-time Color Adjustments
+│   ├── ipad_05_storage.png           # iPad: Local Sandbox & Storage
 │   ├── mockup.png                    # High-res iPhone frame overlay
 │   └── mockup-ipad.png               # High-res iPad frame overlay
 │
