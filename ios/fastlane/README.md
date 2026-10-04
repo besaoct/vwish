@@ -31,6 +31,14 @@ Build a signed App Store IPA locally (build number from BUILD_NUMBER or 1)
 
 Sync metadata, screenshots, and age rating to App Store Connect without binary
 
+### ios screenshots
+
+```sh
+[bundle exec] fastlane ios screenshots
+```
+
+Upload screenshots only to App Store Connect
+
 ### ios beta
 
 ```sh

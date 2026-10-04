@@ -52,6 +52,22 @@ platform :ios do
     )
   end
 
+  desc "Upload screenshots only to App Store Connect"
+  lane :screenshots do
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      force: true,
+      skip_metadata: true,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false
+    )
+  end
+
   desc "Build and upload to TestFlight"
   lane :beta do
     ipa = flutter_ipa(next_build_number)
