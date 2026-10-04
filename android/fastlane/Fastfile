@@ -19,6 +19,14 @@ platform :android do
   end
 
   def flutter_aab(version_code)
+    if ENV["AAB"] && File.exist?(ENV["AAB"])
+      UI.message("Using pre-built AAB from ENV['AAB']: #{ENV['AAB']}")
+      return ENV["AAB"]
+    end
+    if File.exist?(AAB)
+      UI.message("Using existing pre-built AAB: #{AAB}")
+      return AAB
+    end
     UI.user_error!("android/key.properties is missing; release builds would be debug-signed") unless File.exist?(File.join(ROOT, "android/key.properties"))
     Dir.chdir(ROOT) do
       sh("flutter", "build", "appbundle", "--release", "--build-number=#{version_code}")
@@ -34,6 +42,7 @@ platform :android do
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true,
+      skip_upload_changelogs: true,
     )
   end
 
@@ -58,6 +67,12 @@ platform :android do
   desc "Build and upload to the internal testing track"
   lane :internal do
     upload("internal", next_version_code)
+  end
+
+  desc "Build and upload to the closed testing (alpha) track"
+  lane :alpha do |options|
+    version_code = options[:version_code] || ENV["BUILD_NUMBER"] || 1
+    upload("alpha", version_code)
   end
 
   desc "Build and upload to the open/closed beta track"

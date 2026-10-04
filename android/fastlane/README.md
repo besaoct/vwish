@@ -39,6 +39,14 @@ Build a signed release App Bundle locally (version code from BUILD_NUMBER or a t
 
 Build and upload to the internal testing track
 
+### android alpha
+
+```sh
+[bundle exec] fastlane android alpha
+```
+
+Build and upload to the closed testing (alpha) track
+
 ### android beta
 
 ```sh
