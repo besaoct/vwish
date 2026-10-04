@@ -48,15 +48,15 @@ slides = [
     {
         "index": 3,
         "id": "03_tools_settings",
-        "eyebrow": "PRO PLAYBACK TOOLKIT",
-        "headline_line1": "Smart playback.",
-        "headline_line2": "Tuned to <span class=\"lit\">your rhythm.</span>",
-        "subline": "Integrated stream diagnostics, media inspector, and storage tools.",
+        "eyebrow": "PRO MEDIA TOOLKIT",
+        "headline_line1": "Powerful tools.",
+        "headline_line2": "Built for <span class=\"lit\">total control.</span>",
+        "subline": "Integrated stream checker, media inspector, network diagnostics, and customizable player preferences.",
         "screen_img": to_base64(os.path.join(SRC_DIR, "mac_03_settings.png")),
         "chip_pos": "right",
-        "chip_status": "ALL-IN-ONE TOOLKIT",
+        "chip_status": "ALL-IN-ONE UTILITIES",
         "chip_title": "Pro Media Suite",
-        "chip_meta": "STREAM CHECK · MEDIA INFO · SPEED TEST"
+        "chip_meta": "STREAM CHECK · MEDIA INFO · DATA USAGE"
     },
     {
         "index": 4,

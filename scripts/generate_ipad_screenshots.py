@@ -5,7 +5,7 @@ import subprocess
 import shutil
 from PIL import Image
 
-WORKSPACE = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUB_DIR = os.path.join(WORKSPACE, "publishing")
 SRC_DIR = os.path.join(PUB_DIR, "source_assets")
 OUT_IPAD = os.path.join(PUB_DIR, "screenshots", "ipad_12_9")
@@ -39,17 +39,17 @@ slides = [
     },
     {
         "index": 2,
-        "id": "02_equalizer_bass",
-        "eyebrow": "PRO PLAYBACK CONTROLS",
-        "headline_line1": "Smart playback.",
-        "headline_line2": "Tuned to <span class=\"lit\">your rhythm.</span>",
-        "subline": "Custom seek gestures, stream inspection, and comprehensive media tools.",
+        "id": "02_tools_settings",
+        "eyebrow": "PRO MEDIA TOOLKIT",
+        "headline_line1": "Powerful tools.",
+        "headline_line2": "Built for <span class=\"lit\">total control.</span>",
+        "subline": "Integrated stream checker, media inspector, seek gestures, and comprehensive player preferences.",
         "screen_img": to_base64(os.path.join(SRC_DIR, "ipad_02_settings.png")),
         "chip_pos": "right",
         "chip_vertical": "bottom: 20%;",
-        "chip_status": "PLAYER TOOLKIT",
-        "chip_title": "Custom Seek Controls",
-        "chip_meta": "5S–30S SEEK · STREAM CHECK · MEDIA INFO"
+        "chip_status": "ALL-IN-ONE UTILITIES",
+        "chip_title": "Pro Media Tools",
+        "chip_meta": "STREAM CHECK · MEDIA INFO · SEEK GESTURES"
     },
     {
         "index": 3,
