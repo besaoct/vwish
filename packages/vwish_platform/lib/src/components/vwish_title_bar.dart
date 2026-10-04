@@ -24,7 +24,7 @@ class VwishTitleBar extends StatelessWidget {
 
   const VwishTitleBar({
     super.key,
-    this.title = 'Vwish',
+    this.title,
     this.trailing,
     this.isAlwaysOnTop = false,
     this.onToggleAlwaysOnTop,

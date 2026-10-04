@@ -252,7 +252,7 @@ class _VwishPlayerScreenState extends ConsumerState<VwishPlayerScreen> {
                       left: 0,
                       right: 0,
                       child: VwishTitleBar(
-                        title: _isLocked ? null : state.currentMediaRef?.title ?? 'Vwish',
+                        title: _isLocked ? null : state.currentMediaRef?.title,
                         isAlwaysOnTop: state.isAlwaysOnTop,
                         onToggleAlwaysOnTop: _isLocked ? null : _playerCtrl.toggleAlwaysOnTop,
                       ),
