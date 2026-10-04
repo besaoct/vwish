@@ -1,0 +1,37 @@
+Vwish is the modern, ultra-high performance HDR media player built for macOS. Engineered with a hardware-accelerated playback engine, Vwish effortlessly handles virtually any video format, container, subtitle, and audio codec with silky-smooth frame pacing and minimal CPU utilization.
+
+Whether playing high-bitrate HEVC and AV1 movies from your local drive, streaming live HLS and DASH broadcasts, or managing video playlists, Vwish delivers an uncompromising cinematic experience on your Mac.
+
+KEY FEATURES:
+
+UNIVERSAL HIGH-DEFINITION & HDR PLAYBACK
+• Native hardware-accelerated video decoding optimized for Apple Silicon and Intel Macs.
+• Flawless support for MKV, MP4, MOV, WebM, AVI, TS, and FLV containers.
+• Support for HEVC/H.265, AV1, H.264/AVC, VP9, and ProRes codecs.
+• True HDR10, HLG, and wide color playback with accurate color reproduction.
+
+REAL-TIME COLOR GRADING & VIDEO FILTERS
+• Fine-tune brightness, contrast, saturation, and gamma during live playback.
+• A-B loop repeat for analyzing clips, choreography, or studying scenes.
+• Flexible aspect ratio scaling: fit, stretch, crop, and custom zoom modes.
+
+STUDIO-GRADE AUDIO ENGINE
+• 10-band parametric equalizer with custom presets (Rock, Pop, Classical, Flat, and Custom).
+• Real-time Bass Boost and dynamic audio normalization for crystal-clear dialogue.
+• Multi-track audio selection with support for AAC, AC3, E-AC3, TrueHD, FLAC, and Opus.
+
+REAL-TIME STREAM DIAGNOSTICS
+• Integrated network speed test and latency diagnostics for streaming readiness.
+• Live playback telemetry: dropped frames, buffer health, current bitrate, and decoder status.
+• Fast link validation for direct HTTP, HTTPS, and HLS/DASH media streams.
+
+MAC-NATIVE EXPERIENCE
+• Seamless drag-and-drop playback for local files and folders.
+• Intuitive keyboard shortcuts for precision seek, volume, and playback controls.
+• Full macOS window management and menu bar integration.
+
+ON-DEVICE PRIVACY FIRST
+• Zero telemetry, zero analytics, and zero tracking. All your media stays strictly on your device.
+• Sandboxed and secure with minimal system footprint.
+
+Experience ultra-smooth, high-definition video playback on your Mac. Download Vwish today.

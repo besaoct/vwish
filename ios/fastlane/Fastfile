@@ -87,6 +87,51 @@ platform :ios do
     )
   end
 
+  desc "Upload Mac metadata to App Store Connect"
+  lane :mac_metadata do
+    upload_to_app_store(
+      api_key: api_key,
+      platform: "osx",
+      app_version: "1.0",
+      metadata_path: "fastlane/metadata_mac",
+      skip_binary_upload: true,
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false
+    )
+  end
+
+  desc "Verify Mac metadata in App Store Connect"
+  lane :verify_mac_metadata do
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(**api_key)
+    app = Spaceship::ConnectAPI::App.find("com.vecvel.vwish")
+    mac_version = app.get_app_store_versions(filter: { platform: "MAC_OS" }).first
+    loc = mac_version.get_app_store_version_localizations.first
+    UI.header("App Store Connect macOS Metadata")
+    UI.message("Version: #{mac_version.version_string} (#{mac_version.app_store_state})")
+    UI.message("Locale: #{loc.locale}")
+    UI.message("Description length: #{loc.description&.length || 0} chars")
+    UI.message("Description preview: #{loc.description&.slice(0, 120)}...")
+    UI.message("Keywords: #{loc.keywords}")
+    UI.message("Support URL: #{loc.support_url}")
+    UI.message("Marketing URL: #{loc.marketing_url}")
+    UI.message("Promotional Text: #{loc.promotional_text}")
+    builds = app.get_builds(filter: { "preReleaseVersion.platform" => "MAC_OS" })
+    UI.message("macOS Builds: #{builds.map { |b| "build #{b.version} (#{b.processing_state})" }.join(', ')}")
+    current_build = mac_version.build
+    UI.message("Currently selected build: #{current_build&.version || 'None'}")
+    if current_build.nil? && builds.any?
+      valid_build = builds.find { |b| b.processing_state == "VALID" } || builds.first
+      UI.message("Attaching build #{valid_build.version} to macOS version #{mac_version.version_string}...")
+      mac_version.select_build(build_id: valid_build.id)
+      UI.success("Successfully attached build #{valid_build.version}!")
+    end
+  end
+
   desc "Build and upload to TestFlight"
   lane :beta do
     ipa = flutter_ipa(next_build_number)
@@ -109,4 +154,65 @@ platform :ios do
       run_precheck_before_submit: false
     )
   end
+
+  def macos_pkg(build_number)
+    if ENV["PKG"] && File.exist?(ENV["PKG"])
+      UI.message("Using pre-built PKG: #{ENV['PKG']}")
+      return ENV["PKG"]
+    end
+
+    Dir.chdir(ROOT) do
+      UI.message("1/3 Building macOS release with Flutter...")
+      sh("flutter", "build", "macos", "--release", "--build-number=#{build_number}")
+
+      UI.message("2/3 Archiving macOS Runner with Xcode...")
+      sh(
+        "xcodebuild",
+        "-workspace", "macos/Runner.xcworkspace",
+        "-scheme", "Runner",
+        "-configuration", "Release",
+        "archive",
+        "-archivePath", "build/macos/Runner.xcarchive",
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath", ENV.fetch("ASC_KEY_PATH"),
+        "-authenticationKeyID", ENV.fetch("ASC_KEY_ID"),
+        "-authenticationKeyIssuerID", ENV.fetch("ASC_ISSUER_ID")
+      )
+
+      UI.message("3/3 Exporting signed PKG with Xcode...")
+      sh(
+        "xcodebuild",
+        "-exportArchive",
+        "-archivePath", "build/macos/Runner.xcarchive",
+        "-exportOptionsPlist", "macos/ExportOptions.plist",
+        "-exportPath", "build/macos/export",
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath", ENV.fetch("ASC_KEY_PATH"),
+        "-authenticationKeyID", ENV.fetch("ASC_KEY_ID"),
+        "-authenticationKeyIssuerID", ENV.fetch("ASC_ISSUER_ID")
+      )
+    end
+    File.join(ROOT, "build/macos/export/vwish.pkg")
+  end
+
+  desc "Build signed PKG and upload binary to App Store Connect for macOS"
+  lane :mac_release do
+    build_num = ENV["BUILD_NUMBER"] || 1
+    pkg = macos_pkg(build_num)
+    upload_to_app_store(
+      api_key: api_key,
+      platform: "osx",
+      app_version: "1.0",
+      metadata_path: "fastlane/metadata_mac",
+      pkg: pkg,
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false
+    )
+  end
 end
+

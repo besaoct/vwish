@@ -47,6 +47,22 @@ Upload screenshots only to App Store Connect
 
 Upload Mac screenshots to App Store Connect
 
+### ios mac_metadata
+
+```sh
+[bundle exec] fastlane ios mac_metadata
+```
+
+Upload Mac metadata to App Store Connect
+
+### ios verify_mac_metadata
+
+```sh
+[bundle exec] fastlane ios verify_mac_metadata
+```
+
+Verify Mac metadata in App Store Connect
+
 ### ios beta
 
 ```sh
@@ -62,6 +78,14 @@ Build and upload to TestFlight
 ```
 
 Build signed IPA and upload binary to App Store Connect
+
+### ios mac_release
+
+```sh
+[bundle exec] fastlane ios mac_release
+```
+
+Build signed PKG and upload binary to App Store Connect for macOS
 
 ----
 

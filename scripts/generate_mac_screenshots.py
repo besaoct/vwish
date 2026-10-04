@@ -5,7 +5,7 @@ import subprocess
 import shutil
 from PIL import Image
 
-WORKSPACE = os.path.dirname(os.path.abspath(__file__))
+WORKSPACE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PUB_DIR = os.path.join(WORKSPACE, "publishing")
 SRC_DIR = os.path.join(PUB_DIR, "source_assets")
 OUT_MAC = os.path.join(PUB_DIR, "screenshots", "mac")
@@ -26,7 +26,7 @@ slides = [
         "headline_line1": "Play everything.",
         "headline_line2": "In pure <span class=\"lit\">HDR clarity.</span>",
         "subline": "Hardware-accelerated playback for local media, playlists, and live streams.",
-        "screen_img": to_base64(os.path.join(SRC_DIR, "mac1.png")),
+        "screen_img": to_base64(os.path.join(SRC_DIR, "mac_01_hero.png")),
         "chip_pos": "right",
         "chip_status": "HARDWARE ACCELERATED",
         "chip_title": "All-Format Engine",
@@ -39,7 +39,7 @@ slides = [
         "headline_line1": "Every frame,",
         "headline_line2": "color <span class=\"lit\">graded live.</span>",
         "subline": "Live hardware brightness, contrast, saturation, gamma, and hue adjustments.",
-        "screen_img": to_base64(os.path.join(SRC_DIR, "mac2.png")),
+        "screen_img": to_base64(os.path.join(SRC_DIR, "mac_02_color.png")),
         "chip_pos": "left",
         "chip_status": "FRAME-BY-FRAME DSP",
         "chip_title": "Hardware Color Grade",
@@ -52,7 +52,7 @@ slides = [
         "headline_line1": "Smart playback.",
         "headline_line2": "Tuned to <span class=\"lit\">your rhythm.</span>",
         "subline": "Integrated stream diagnostics, media inspector, and storage tools.",
-        "screen_img": to_base64(os.path.join(SRC_DIR, "mac3.png")),
+        "screen_img": to_base64(os.path.join(SRC_DIR, "mac_03_settings.png")),
         "chip_pos": "right",
         "chip_status": "ALL-IN-ONE TOOLKIT",
         "chip_title": "Pro Media Suite",
@@ -65,7 +65,7 @@ slides = [
         "headline_line1": "Zero buffer.",
         "headline_line2": "Tested in <span class=\"lit\">real time.</span>",
         "subline": "Integrated speed test, latency diagnostics, and stream quality readiness.",
-        "screen_img": to_base64(os.path.join(SRC_DIR, "mac4.png")),
+        "screen_img": to_base64(os.path.join(SRC_DIR, "mac_04_speed_test.png")),
         "chip_pos": "left",
         "chip_status": "NETWORK VERIFIED",
         "chip_title": "Stream Speed Test",
@@ -78,7 +78,7 @@ slides = [
         "headline_line1": "Your media.",
         "headline_line2": "Zero <span class=\"lit\">tracking.</span>",
         "subline": "Complete on-device privacy, direct local file playback, and cache management.",
-        "screen_img": to_base64(os.path.join(SRC_DIR, "mac5.png")),
+        "screen_img": to_base64(os.path.join(SRC_DIR, "mac_05_storage.png")),
         "chip_pos": "right",
         "chip_status": "ON-DEVICE PRIVACY",
         "chip_title": "Zero Data Collected",
@@ -137,29 +137,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     z-index: 10;
   }}
 
-  .eyebrow-pill {{
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 24px;
-    background: rgba(94, 96, 238, 0.14);
-    border: 1.5px solid rgba(129, 140, 248, 0.35);
-    border-radius: 999px;
-    font-size: 19px;
+  .eyebrow {{
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: 2.2px;
-    color: #C7D2FE;
+    letter-spacing: 0.16em;
+    color: #A5B4FC;
     text-transform: uppercase;
     margin-bottom: 20px;
-    box-shadow: 0 4px 20px rgba(94, 96, 238, 0.2);
-  }}
-
-  .eyebrow-dot {{
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #818CF8;
-    box-shadow: 0 0 10px #818CF8;
   }}
 
   .headline {{
@@ -313,8 +297,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="ambient-glow"></div>
 
   <div class="header-zone">
-    <div class="eyebrow-pill">
-      <div class="eyebrow-dot"></div>
+    <div class="eyebrow">
       {eyebrow}
     </div>
     <div class="headline">

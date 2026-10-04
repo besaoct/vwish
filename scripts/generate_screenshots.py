@@ -21,7 +21,7 @@ mockup_b64 = to_base64(os.path.join(SRC_DIR, "mockup.png"))
 
 slides = [
     {
-        "id": "01_hero_4k",
+        "id": "01_hero",
         "eyebrow": "ULTRA-HD PLAYBACK ENGINE",
         "headline_line1": "Play everything.",
         "headline_line2": "In pure <span class=\"lit\">HDR clarity.</span>",
