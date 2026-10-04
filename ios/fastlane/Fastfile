@@ -124,11 +124,12 @@ platform :ios do
     UI.message("macOS Builds: #{builds.map { |b| "build #{b.version} (#{b.processing_state})" }.join(', ')}")
     current_build = mac_version.build
     UI.message("Currently selected build: #{current_build&.version || 'None'}")
-    if current_build.nil? && builds.any?
-      valid_build = builds.find { |b| b.processing_state == "VALID" } || builds.first
-      UI.message("Attaching build #{valid_build.version} to macOS version #{mac_version.version_string}...")
-      mac_version.select_build(build_id: valid_build.id)
-      UI.success("Successfully attached build #{valid_build.version}!")
+    valid_builds = builds.select { |b| b.processing_state == "VALID" }.sort_by { |b| b.version.to_i }
+    latest_valid = valid_builds.last
+    if latest_valid && (current_build.nil? || current_build.version != latest_valid.version)
+      UI.message("Attaching build #{latest_valid.version} to macOS version #{mac_version.version_string}...")
+      mac_version.select_build(build_id: latest_valid.id)
+      UI.success("Successfully attached build #{latest_valid.version}!")
     end
   end
 
