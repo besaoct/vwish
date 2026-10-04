@@ -73,10 +73,10 @@ publishing/
 
 | # | Slide ID | Headline | Key Benefit | Telemetry Card |
 |---|---|---|---|---|
-| **01** | `01_hero_4k` | **Play everything.**<br>In pure **4K HDR.** | Universal hardware decoding (HEVC, AV1, HLS, DASH, local files) | `4K 60FPS HEVC` · Hardware accelerated |
-| **02** | `02_equalizer_bass` | **Studio sound.**<br>Tuned to **your ears.** | 10-band parametric equalizer, bass boost, and audio normalization | `10-Band Equalizer` · +6.0 dB Bass Boost |
-| **03** | `03_speed_diagnostics` | **Zero buffer.**<br>Tested in **real time.** | Integrated 4K speed test, ping diagnostics, and link validator | `33.1 Mbps Download` · 4K Stream Ready |
-| **04** | `04_color_mastering` | **Every frame,**<br>color **graded live.** | Real-time brightness, contrast, saturation, gamma, and A-B repeat | `Hardware Color Grade` · Live gamma & contrast |
+| **01** | `01_hero_4k` | **Play everything.**<br>In pure **HDR clarity.** | Universal hardware decoding (HEVC, AV1, HLS, DASH, local files) | `Ultra-HD HEVC` · Hardware accelerated |
+| **02** | `02_equalizer_bass` | **Smart playback.**<br>Tuned to **your rhythm.** | Custom seek gestures, stream inspection, and media tools | `Custom Seek Controls` · 5s–30s Seek |
+| **03** | `03_speed_diagnostics` | **Zero buffer.**<br>Tested in **real time.** | Integrated speed test, ping diagnostics, and link validator | `Stream Speed Test` · Stream Ready |
+| **04** | `04_color_mastering` | **Every frame,**<br>color **graded live.** | Real-time brightness, contrast, saturation, gamma, and hue | `Hardware Color Grade` · Live gamma & contrast |
 | **05** | `05_privacy_storage` | **Your media.**<br>Zero **tracking.** | 100% on-device sandbox, no telemetry, direct Files integration | `Zero Data Collected` · Private sandbox |
 
 ---

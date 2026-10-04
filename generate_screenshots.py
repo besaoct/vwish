@@ -24,13 +24,13 @@ slides = [
         "id": "01_hero_4k",
         "eyebrow": "ULTRA-HD PLAYBACK ENGINE",
         "headline_line1": "Play everything.",
-        "headline_line2": "In pure <span class=\"lit\">4K HDR.</span>",
+        "headline_line2": "In pure <span class=\"lit\">HDR clarity.</span>",
         "subline": "Hardware-accelerated playback for local media and live streams.",
         "screen_img": to_base64(os.path.join(SRC_DIR, "01_home.png")),
         "chip_pos": "left",
         "chip_vertical": "bottom: 20%;",
         "chip_status": "HARDWARE ACCELERATED",
-        "chip_title": "4K 60FPS HEVC",
+        "chip_title": "Ultra-HD HEVC",
         "chip_meta": "HDR10 · HLS · DASH · LOCAL FILES"
     },
     {
@@ -51,13 +51,13 @@ slides = [
         "eyebrow": "STREAM INTELLIGENCE",
         "headline_line1": "Zero buffer.",
         "headline_line2": "Tested in <span class=\"lit\">real time.</span>",
-        "subline": "Integrated speed test, ping diagnostics, and 4K stream readiness.",
+        "subline": "Integrated speed test, ping diagnostics, and stream readiness.",
         "screen_img": to_base64(os.path.join(SRC_DIR, "03_speed_test.png")),
         "chip_pos": "left",
         "chip_vertical": "bottom: 20%;",
         "chip_status": "NETWORK VERIFIED",
         "chip_title": "33.1 Mbps Download",
-        "chip_meta": "69 ms PING · 4K STREAM READY"
+        "chip_meta": "69 ms PING · STREAM READY"
     },
     {
         "id": "04_color_mastering",

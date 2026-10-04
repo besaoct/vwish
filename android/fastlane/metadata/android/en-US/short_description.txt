@@ -1,1 +1,1 @@
-Pro 4K HDR media player with 10-band equalizer and stream diagnostics.
+All-format HD media player with 10-band equalizer and stream diagnostics.

@@ -1,10 +1,10 @@
-Vwish is the modern, ultra-high performance 4K HDR media player designed for iPhone and iPad. Engineered with a hardware-accelerated playback engine, Vwish effortlessly handles virtually any video format, container, subtitle, and audio codec with silky-smooth frame pacing and zero battery drain.
+Vwish is the modern, ultra-high performance HDR media player designed for iPhone and iPad. Engineered with a hardware-accelerated playback engine, Vwish effortlessly handles virtually any video format, container, subtitle, and audio codec with silky-smooth frame pacing and zero battery drain.
 
-Whether playing high-bitrate 4K HEVC and AV1 movies from your local storage, streaming live HLS and DASH broadcasts, or opening media directly from the Files app, Vwish delivers an uncompromising cinematic experience.
+Whether playing high-bitrate HEVC and AV1 movies from your local storage, streaming live HLS and DASH broadcasts, or opening media directly from the Files app, Vwish delivers an uncompromising cinematic experience.
 
 KEY FEATURES:
 
-UNIVERSAL 4K HDR PLAYBACK
+UNIVERSAL HIGH-DEFINITION & HDR PLAYBACK
 • Native hardware-accelerated video decoding for HEVC/H.265, AV1, H.264/AVC, VP9, and ProRes.
 • Flawless support for MKV, MP4, MOV, WebM, AVI, TS, and FLV containers.
 • True HDR10, HLG, and Dolby Vision playback with accurate color reproduction.

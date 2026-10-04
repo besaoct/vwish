@@ -1,10 +1,10 @@
-Vwish is the modern, ultra-high performance 4K HDR media player built for speed, fidelity, and versatility. Powered by an advanced hardware-accelerated playback engine, Vwish plays virtually any video format, audio stream, and subtitle file with silky-smooth frame rates and zero battery waste.
+Vwish is the modern, ultra-high performance HDR media player built for speed, fidelity, and versatility. Powered by an advanced hardware-accelerated playback engine, Vwish plays virtually any video format, audio stream, and subtitle file with silky-smooth frame rates and zero battery waste.
 
-Whether you're playing 4K HEVC and AV1 movies from your local storage, streaming live HLS/DASH broadcasts, or opening videos directly from your file manager, Vwish delivers an uncompromising cinematic experience.
+Whether you're playing high-bitrate HEVC and AV1 movies from your local storage, streaming live HLS/DASH broadcasts, or opening videos directly from your file manager, Vwish delivers an uncompromising cinematic experience.
 
 KEY HIGHLIGHTS:
 
-UNIVERSAL 4K HDR VIDEO ENGINE
+UNIVERSAL HIGH-DEFINITION VIDEO ENGINE
 • Hardware-accelerated decoding for HEVC/H.265, AV1, H.264/AVC, VP9, and ProRes.
 • Wide container support: MKV, MP4, WebM, AVI, MOV, TS, and FLV.
 • True HDR10, HLG, and wide color gamut rendering.
