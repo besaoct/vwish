@@ -59,6 +59,19 @@ platform :android do
     )
   end
 
+  desc "Upload store listing images (feature graphic, icon) to Google Play Store"
+  lane :images do
+    upload_to_play_store(
+      track: "alpha",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_changelogs: true,
+      skip_upload_metadata: true,
+      skip_upload_images: false,
+      skip_upload_screenshots: true
+    )
+  end
+
   desc "Upload release notes / changelogs to Google Play Store"
   lane :release_notes do |options|
     track_name = options[:track] || "alpha"
