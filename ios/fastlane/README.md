@@ -39,6 +39,14 @@ Sync metadata, screenshots, and age rating to App Store Connect without binary
 
 Upload screenshots only to App Store Connect
 
+### ios mac_screenshots
+
+```sh
+[bundle exec] fastlane ios mac_screenshots
+```
+
+Upload Mac screenshots to App Store Connect
+
 ### ios beta
 
 ```sh
