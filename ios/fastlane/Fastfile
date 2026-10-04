@@ -196,8 +196,8 @@ platform :ios do
   end
 
   desc "Build signed PKG and upload binary to App Store Connect for macOS"
-  lane :mac_release do
-    build_num = ENV["BUILD_NUMBER"] || 1
+  lane :mac_release do |options|
+    build_num = (options && (options[:build_number] || options[:BUILD_NUMBER])) || ENV["BUILD_NUMBER"] || 2
     pkg = macos_pkg(build_num)
     upload_to_app_store(
       api_key: api_key,
