@@ -1,0 +1,70 @@
+# Android release lanes. Run from the android/ folder:  fastlane android <lane>
+# Signing uses android/key.properties + android/app/release.jks (both git-ignored).
+# Google Play credentials are read from android/fastlane/.env (git-ignored); see .env.example.
+# The very first upload must be made by hand in Play Console; the API can't create the app.
+
+default_platform(:android)
+
+ROOT = File.expand_path("../..", __dir__)
+AAB = File.join(ROOT, "build/app/outputs/bundle/release/app-release.aab")
+
+platform :android do
+  def next_version_code
+    codes = %w[internal alpha beta production].flat_map do |track|
+      google_play_track_version_codes(track: track)
+    rescue StandardError
+      []
+    end
+    (codes.max || 0) + 1
+  end
+
+  def flutter_aab(version_code)
+    UI.user_error!("android/key.properties is missing; release builds would be debug-signed") unless File.exist?(File.join(ROOT, "android/key.properties"))
+    Dir.chdir(ROOT) do
+      sh("flutter", "build", "appbundle", "--release", "--build-number=#{version_code}")
+    end
+    AAB
+  end
+
+  def upload(track, version_code)
+    upload_to_play_store(
+      track: track,
+      aab: flutter_aab(version_code),
+      release_status: ENV.fetch("PLAY_RELEASE_STATUS", "completed"),
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+    )
+  end
+
+  desc "Upload metadata, store images, and screenshots to Google Play Store without binary"
+  lane :metadata do
+    upload_to_play_store(
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+  end
+
+  desc "Build a signed release App Bundle locally (version code from BUILD_NUMBER or a timestamp)"
+  lane :build do
+    flutter_aab(ENV["BUILD_NUMBER"] || Time.now.strftime("%y%m%d%H"))
+  end
+
+  desc "Build and upload to the internal testing track"
+  lane :internal do
+    upload("internal", next_version_code)
+  end
+
+  desc "Build and upload to the open/closed beta track"
+  lane :beta do
+    upload("beta", next_version_code)
+  end
+
+  desc "Build and upload to production"
+  lane :production do
+    upload("production", next_version_code)
+  end
+end

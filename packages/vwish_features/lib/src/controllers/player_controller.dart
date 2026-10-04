@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vwish_data/vwish_data.dart';
 import 'package:vwish_domain/vwish_domain.dart';
@@ -16,6 +16,22 @@ class PlayerController extends StateNotifier<PlayerState> {
   StreamSubscription<PlayerSnapshot>? _snapshotSub;
   StreamSubscription<PlayerError>? _errorSub;
   Timer? _resumeSaveTimer;
+  HwdecMode _hwdecMode = HwdecMode.autoSafe;
+  bool _awaitingHistoryDuration = false;
+  bool _reportedNoAudio = false;
+  bool _playedSinceOpen = false;
+
+  /// Bumped by every [openMedia]; continuations of a superseded open bail out.
+  int _openToken = 0;
+
+  /// Snapshots queued before the engine reports the new file as loading still describe the
+  /// previous one.
+  bool _sawLoadSinceOpen = false;
+
+  /// Whether position and duration describe [PlayerState.currentMediaRef] yet.
+  bool _mediaLoaded = false;
+
+  HwdecMode get hwdecMode => _hwdecMode;
 
   PlayerController(this._engine, this._sessionRepo, this._libraryRepo, this._ref)
       : super(const PlayerState()) {
@@ -39,6 +55,15 @@ class PlayerController extends StateNotifier<PlayerState> {
   }
 
   void _handleSnapshot(PlayerSnapshot s) {
+    if (_openToken > 0 && !_sawLoadSinceOpen) {
+      if (s.status != PlaybackStatus.loading) return;
+      _sawLoadSinceOpen = true;
+    }
+    if (!_mediaLoaded && s.status != PlaybackStatus.loading && s.duration > Duration.zero) {
+      _mediaLoaded = true;
+    }
+    if (s.status == PlaybackStatus.playing) _playedSinceOpen = true;
+    final wasEnded = state.status == PlaybackStatus.ended;
     // Handle sleep inhibitor
     if (s.status == PlaybackStatus.playing && state.status != PlaybackStatus.playing) {
       PlatformBridge.setSleepInhibited(true);
@@ -65,33 +90,62 @@ class PlayerController extends StateNotifier<PlayerState> {
       abLoop: s.abLoop,
       stats: s.stats,
     );
+    _syncHistoryDuration();
 
-    // If EOF/ended, check for auto-advance in Queue
-    if (s.status == PlaybackStatus.ended) {
+    // Position updates keep arriving at EOF; advance the queue once.
+    if (s.status == PlaybackStatus.ended && !wasEnded) {
       _saveCurrentResume();
       _ref.read(queueControllerProvider.notifier).onPlaybackEnded();
     }
   }
 
   void _handleError(PlayerError err) {
+    if (err is PlaybackWarning) return;
+    // Unclassified mpv errors after playback started (e.g. an undecodable extra track) don't stop the video.
+    if (err is GenericPlayerError && _playedSinceOpen) {
+      debugPrint('[PlayerController] Ignoring non-fatal error during playback: ${err.message}');
+      return;
+    }
+    if (err is AudioOutputUnavailable) {
+      if (_reportedNoAudio) return;
+      _reportedNoAudio = true;
+    }
     state = state.copyWith(error: err);
+  }
+
+  void _syncHistoryDuration() {
+    final media = state.currentMediaRef;
+    final duration = state.duration;
+    if (!_awaitingHistoryDuration || !_mediaLoaded || media == null || duration <= Duration.zero) return;
+    _awaitingHistoryDuration = false;
+    _libraryRepo.updateHistoryDuration(media.pathOrUri, duration);
   }
 
   void _saveCurrentResume() {
     final ref = state.currentMediaRef;
-    if (ref != null && state.duration > Duration.zero) {
+    if (ref != null && _mediaLoaded && state.duration > Duration.zero) {
       _sessionRepo.saveResumePosition(ref.id, state.position, state.duration);
     }
   }
 
+  /// Saves the current resume point now, e.g. before the app is backgrounded.
+  void saveResumePoint() => _saveCurrentResume();
+
   Future<void> openMedia(MediaRef media, {Duration? startAt}) async {
+    final token = ++_openToken;
     _saveCurrentResume();
+    _playedSinceOpen = false;
+    _sawLoadSinceOpen = false;
+    _mediaLoaded = false;
+    _awaitingHistoryDuration = false;
 
     state = state.copyWith(
       currentMediaRef: media,
       currentSource: media.isRemote
           ? MediaSource.network(media.pathOrUri, title: media.title)
           : MediaSource.file(media.pathOrUri, title: media.title),
+      position: Duration.zero,
+      duration: Duration.zero,
       error: null,
     );
 
@@ -102,26 +156,20 @@ class PlayerController extends StateNotifier<PlayerState> {
       state.currentSource!,
       startAt: resumePos,
     );
+    if (token != _openToken) return;
 
-    // Restore per-file preferences
-    final subDelay = _sessionRepo.getSubtitleDelay(media.id);
-    final audioDelay = _sessionRepo.getAudioDelay(media.id);
-    final adjust = _sessionRepo.getVideoAdjust(media.id);
+    // Per-file preferences; defaults too, since mpv keeps the previous file's values.
+    await _engine.setSubtitleDelay(_sessionRepo.getSubtitleDelay(media.id));
+    await _engine.setAudioDelay(_sessionRepo.getAudioDelay(media.id));
+    await _engine.setVideoAdjust(_sessionRepo.getVideoAdjust(media.id));
+    if (token != _openToken) return;
 
-    if (subDelay != Duration.zero) await _engine.setSubtitleDelay(subDelay);
-    if (audioDelay != Duration.zero) await _engine.setAudioDelay(audioDelay);
-    if (adjust != VideoAdjust.normal) await _engine.setVideoAdjust(adjust);
+    // Sidecar subtitles (file.srt, Subs/file.en.srt) are loaded by mpv's sub-auto.
 
-    // Auto-discover sidecar subtitles if local file
-    if (!media.isRemote) {
-      final sidecars = await LibraryRepository.discoverSidecarSubtitles(media.pathOrUri);
-      for (final subPath in sidecars) {
-        await _engine.addSubtitleFile(subPath, select: false);
-      }
-    }
-
-    // Record in recently played history
     await _libraryRepo.recordPlayed(media);
+    if (token != _openToken) return;
+    _awaitingHistoryDuration = true;
+    _syncHistoryDuration();
   }
 
   Future<void> togglePlay() => _engine.playOrPause();
@@ -184,6 +232,11 @@ class PlayerController extends StateNotifier<PlayerState> {
     }
   }
 
+  Future<void> setHwdec(HwdecMode mode) {
+    _hwdecMode = mode;
+    return _engine.setHwdec(mode);
+  }
+
   Future<void> setVideoTransform(VideoTransform t) => _engine.setVideoTransform(t);
   Future<void> setAudioFilters(AudioFilter filter) => _engine.setAudioFilters(filter);
   Future<void> setSubtitleStyle(SubtitleStyle style) => _engine.setSubtitleStyle(style);
@@ -195,6 +248,18 @@ class PlayerController extends StateNotifier<PlayerState> {
         : ViewMode.fullscreen;
     state = state.copyWith(viewMode: nextMode);
     await PlatformBridge.setFullscreen(nextMode == ViewMode.fullscreen);
+  }
+
+  Future<void> exitFullscreen() async {
+    if (state.viewMode != ViewMode.fullscreen) return;
+    state = state.copyWith(viewMode: ViewMode.windowed);
+    await PlatformBridge.setFullscreen(false);
+  }
+
+  /// Mirrors a fullscreen change the window made on its own (e.g. through the OS).
+  void syncFullscreen(bool fullscreen) {
+    if ((state.viewMode == ViewMode.fullscreen) == fullscreen) return;
+    state = state.copyWith(viewMode: fullscreen ? ViewMode.fullscreen : ViewMode.windowed);
   }
 
   Future<void> toggleAlwaysOnTop() async {

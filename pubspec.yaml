@@ -1,5 +1,5 @@
-name: vwish_player
-description: "Vwish Video Player - Ultra-high performance cross-platform media player."
+name: vwish
+description: "Vwish - Ultra-high performance cross-platform media player."
 publish_to: 'none'
 
 version: 1.0.0+1

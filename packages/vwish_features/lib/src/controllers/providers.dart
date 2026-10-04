@@ -31,3 +31,20 @@ final queueControllerProvider =
   final libraryRepo = ref.watch(libraryRepositoryProvider);
   return QueueController(playerCtrl, libraryRepo);
 });
+
+/// How far, in seconds, a double tap on the left or right of the video seeks.
+final doubleTapSeekProvider = StateNotifierProvider<DoubleTapSeekController, int>((ref) {
+  return DoubleTapSeekController(ref.watch(sessionRepositoryProvider));
+});
+
+class DoubleTapSeekController extends StateNotifier<int> {
+  DoubleTapSeekController(this._sessionRepo) : super(_sessionRepo.getDoubleTapSeekSeconds());
+
+  final SessionRepository _sessionRepo;
+
+  Future<void> set(int seconds) async {
+    if (seconds <= 0 || seconds == state) return;
+    state = seconds;
+    await _sessionRepo.saveDoubleTapSeekSeconds(seconds);
+  }
+}

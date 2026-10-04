@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <application
-        android:label="Vwish Player"
+        android:label="Vwish"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:hardwareAccelerated="true"
@@ -27,6 +27,8 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Incoming file/stream URLs aren't app routes; keep them out of the router. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
             <!-- Main Launcher -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -54,12 +56,12 @@
                 <data android:scheme="https" />
                 <data android:mimeType="audio/*" />
             </intent-filter>
-            <!-- Custom URI Scheme: vwishplayer:// -->
+            <!-- Custom URI Scheme: vwish:// -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="vwishplayer" />
+                <data android:scheme="vwish" />
             </intent-filter>
         </activity>
         <meta-data

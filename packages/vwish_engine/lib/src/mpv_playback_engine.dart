@@ -1,12 +1,21 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart' as mk;
 import 'package:media_kit_video/media_kit_video.dart' as mkv;
+import 'package:path_provider/path_provider.dart';
 import 'package:vwish_domain/vwish_domain.dart';
+import 'mpv_events.dart';
 import 'playback_engine.dart';
 
 class MpvPlaybackEngine implements PlaybackEngine {
+  MpvPlaybackEngine({this.subtitleFontAssets = const []});
+
+  /// Font files (asset keys) that subtitles and the OSD render with, so they use the app's own
+  /// typeface rather than whatever the system has installed.
+  final List<String> subtitleFontAssets;
+
   mk.Player? _player;
   mkv.VideoController? _videoController;
 
@@ -22,6 +31,9 @@ class MpvPlaybackEngine implements PlaybackEngine {
   final List<StreamSubscription> _subscriptions = [];
 
   bool _isDisposed = false;
+  bool _playing = false;
+  bool _buffering = false;
+  bool _completed = false;
 
   @override
   ValueListenable<int?> get textureId => _textureIdNotifier;
@@ -40,7 +52,7 @@ class MpvPlaybackEngine implements PlaybackEngine {
     mk.MediaKit.ensureInitialized();
 
     final playerConfig = mk.PlayerConfiguration(
-      title: 'Vwish Player',
+      title: 'Vwish',
       ready: () {
         debugPrint('[MpvPlaybackEngine] libmpv is ready');
       },
@@ -51,15 +63,41 @@ class MpvPlaybackEngine implements PlaybackEngine {
     _player = mk.Player(configuration: playerConfig);
     _videoController = mkv.VideoController(_player!);
 
-    // Configure mpv properties directly
-    await _configureMpv(config);
+    // Not awaited: media_kit's setProperty waits for the VideoController's
+    // native texture, which is only created once the Video widget mounts after
+    // runApp(). Awaiting here deadlocks startup.
+    unawaited(_configureMpv(config));
 
     _wireSubscriptions();
     _startStatsPolling();
   }
 
+  /// Copies [subtitleFontAssets] to a real folder (libass can't read the asset bundle) and points
+  /// mpv at it. Kept out of the cache folders, which the Storage tool may clear.
+  Future<void> _installSubtitleFonts() async {
+    if (subtitleFontAssets.isEmpty) return;
+    try {
+      final dir = Directory('${(await getApplicationSupportDirectory()).path}/fonts');
+      await dir.create(recursive: true);
+      for (final asset in subtitleFontAssets) {
+        final file = File('${dir.path}/${asset.split('/').last}');
+        if (await file.exists()) continue;
+        final data = await rootBundle.load(asset);
+        await file.writeAsBytes(data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes), flush: true);
+      }
+      await setProperty('sub-fonts-dir', dir.path);
+      await setProperty('osd-fonts-dir', dir.path);
+      // Used until a SubtitleStyle is applied; the style's default is the same family.
+      await setProperty('sub-font', const SubtitleStyle().fontFamily);
+      await setProperty('osd-font', const SubtitleStyle().fontFamily);
+    } catch (e) {
+      debugPrint('[MpvPlaybackEngine] Subtitle fonts unavailable: $e');
+    }
+  }
+
   Future<void> _configureMpv(EngineConfig config) async {
     if (_player == null) return;
+    await _installSubtitleFonts();
     try {
       await setProperty('keep-open', 'yes');
       await setProperty('osc', 'no');
@@ -82,37 +120,24 @@ class MpvPlaybackEngine implements PlaybackEngine {
     if (_player == null) return;
 
     _subscriptions.add(_player!.stream.playing.listen((playing) {
-      _emitSnapshot(
-        _currentSnapshot = _currentSnapshot.status == PlaybackStatus.buffering
-            ? _currentSnapshot
-            : _cloneWith(
-                status: playing ? PlaybackStatus.playing : PlaybackStatus.paused,
-              ),
-      );
+      _playing = playing;
+      if (playing) _completed = false;
+      _emitTransportStatus();
     }));
 
     _subscriptions.add(_player!.stream.buffering.listen((buffering) {
-      if (buffering) {
-        _emitSnapshot(_currentSnapshot = _cloneWith(status: PlaybackStatus.buffering));
-      } else {
-        final isPlaying = _player?.state.playing ?? false;
-        _emitSnapshot(
-          _currentSnapshot = _cloneWith(
-            status: isPlaying ? PlaybackStatus.playing : PlaybackStatus.paused,
-          ),
-        );
-      }
+      _buffering = buffering;
+      _emitTransportStatus();
     }));
 
     _subscriptions.add(_player!.stream.completed.listen((completed) {
-      if (completed) {
-        _emitSnapshot(_currentSnapshot = _cloneWith(status: PlaybackStatus.ended));
-      }
+      _completed = completed;
+      _emitTransportStatus();
     }));
 
     _subscriptions.add(_player!.stream.position.listen((pos) {
+      _countAbLoop(_currentSnapshot.position, pos);
       _emitSnapshot(_currentSnapshot = _cloneWith(position: pos));
-      _checkAbLoop(pos);
     }));
 
     _subscriptions.add(_player!.stream.duration.listen((dur) {
@@ -141,24 +166,44 @@ class MpvPlaybackEngine implements PlaybackEngine {
 
     _subscriptions.add(_player!.stream.error.listen((err) {
       debugPrint('[MpvPlaybackEngine] Player error: $err');
-      _errorController.add(GenericPlayerError(err));
+      _errorController.add(classifyMpvError(err));
     }));
   }
 
-  void _checkAbLoop(Duration pos) {
+  void _emitTransportStatus() {
+    _emitSnapshot(_currentSnapshot = _cloneWith(
+      status: mpvTransportStatus(playing: _playing, buffering: _buffering, completed: _completed),
+    ));
+  }
+
+  /// media_kit only reports `completed` while its play state is unlocked, so EOF reached after a
+  /// pause-and-seek would otherwise go unnoticed.
+  void _syncEndOfFile(bool eofReached) {
+    final status = _currentSnapshot.status;
+    if (eofReached == _completed || status == PlaybackStatus.loading || status == PlaybackStatus.idle) return;
+    if (eofReached && _playing) return;
+    _completed = eofReached;
+    _emitTransportStatus();
+  }
+
+  /// mpv loops natively via ab-loop-a/b, but only clips at B when playback was before B once B
+  /// was set; anything that still runs well past B is sent back here. Also counts the loops.
+  void _countAbLoop(Duration previous, Duration pos) {
     final loop = _currentSnapshot.abLoop;
-    if (loop != null && loop.b != null) {
-      if (pos >= loop.b!) {
-        seek(loop.a, mode: SeekMode.exact);
-        _currentSnapshot = _cloneWith(
-          abLoop: loop.copyWith(count: loop.count + 1),
-        );
-      }
+    final b = loop?.b;
+    if (loop == null || b == null) return;
+    if (pos >= b + const Duration(milliseconds: 500)) {
+      seek(loop.a, mode: SeekMode.exact);
+      return;
+    }
+    if (previous >= b - const Duration(milliseconds: 500) && pos < previous && pos <= loop.a + const Duration(seconds: 1)) {
+      _currentSnapshot = _cloneWith(abLoop: loop.copyWith(count: loop.count + 1));
     }
   }
 
   void _mapTracks(mk.Tracks mkTracks) {
     final videoTracks = mkTracks.video
+        .where((t) => _isRealTrackId(t.id))
         .map((t) => MediaTrack(
               id: t.id,
               type: TrackType.video,
@@ -173,6 +218,7 @@ class MpvPlaybackEngine implements PlaybackEngine {
         .toList();
 
     final audioTracks = mkTracks.audio
+        .where((t) => _isRealTrackId(t.id))
         .map((t) => MediaTrack(
               id: t.id,
               type: TrackType.audio,
@@ -185,6 +231,7 @@ class MpvPlaybackEngine implements PlaybackEngine {
         .toList();
 
     final subtitleTracks = mkTracks.subtitle
+        .where((t) => _isRealTrackId(t.id))
         .map((t) => MediaTrack(
               id: t.id,
               type: TrackType.subtitle,
@@ -202,6 +249,9 @@ class MpvPlaybackEngine implements PlaybackEngine {
 
     _emitSnapshot(_currentSnapshot = _cloneWith(tracks: trackSelection));
   }
+
+  // media_kit lists mpv's 'auto' and 'no' pseudo-tracks alongside the real ones.
+  static bool _isRealTrackId(String id) => id != 'auto' && id != 'no';
 
   void _updateActiveTracks(mk.Track currentTrack) {
     final sel = _currentSnapshot.tracks.copyWith(
@@ -232,6 +282,8 @@ class MpvPlaybackEngine implements PlaybackEngine {
         final primaries = await getProperty<String>('video-params/primaries');
         final sampleRate = await getProperty<int>('audio-params/samplerate');
         final audioChannels = await getProperty<String>('audio-params/channels');
+        final eof = await getProperty<String>('eof-reached');
+        if (eof != null && !_isDisposed) _syncEndOfFile(eof == 'yes');
 
         final stats = DiagnosticsStats(
           videoCodec: vCodec,
@@ -264,6 +316,8 @@ class MpvPlaybackEngine implements PlaybackEngine {
     }
   }
 
+  static const Object _keep = Object();
+
   PlayerSnapshot _cloneWith({
     PlaybackStatus? status,
     Duration? position,
@@ -280,7 +334,7 @@ class MpvPlaybackEngine implements PlaybackEngine {
     AudioFilter? audioFilter,
     Duration? subtitleDelay,
     Duration? audioDelay,
-    AbLoop? abLoop,
+    Object? abLoop = _keep,
     String? hwdecCurrent,
     DiagnosticsStats? stats,
     PlayerError? error,
@@ -301,7 +355,7 @@ class MpvPlaybackEngine implements PlaybackEngine {
       audioFilter: audioFilter ?? _currentSnapshot.audioFilter,
       subtitleDelay: subtitleDelay ?? _currentSnapshot.subtitleDelay,
       audioDelay: audioDelay ?? _currentSnapshot.audioDelay,
-      abLoop: abLoop ?? _currentSnapshot.abLoop,
+      abLoop: identical(abLoop, _keep) ? _currentSnapshot.abLoop : abLoop as AbLoop?,
       hwdecCurrent: hwdecCurrent ?? _currentSnapshot.hwdecCurrent,
       stats: stats ?? _currentSnapshot.stats,
       error: error ?? _currentSnapshot.error,
@@ -311,7 +365,20 @@ class MpvPlaybackEngine implements PlaybackEngine {
   @override
   Future<void> open(MediaSource source, {Duration? startAt}) async {
     if (_player == null) return;
-    _emitSnapshot(_currentSnapshot = _cloneWith(status: PlaybackStatus.loading));
+    _completed = false;
+    final hadAbLoop = _currentSnapshot.abLoop != null;
+    // Position and duration belong to the previous file until the new one reports its own.
+    _emitSnapshot(_currentSnapshot = _cloneWith(
+      status: PlaybackStatus.loading,
+      position: Duration.zero,
+      duration: Duration.zero,
+      cacheEnd: Duration.zero,
+      abLoop: null,
+    ));
+    if (hadAbLoop) {
+      await setProperty('ab-loop-a', 'no');
+      await setProperty('ab-loop-b', 'no');
+    }
 
     final mkMedia = mk.Media(
       source.uri,
@@ -322,7 +389,7 @@ class MpvPlaybackEngine implements PlaybackEngine {
     try {
       await _player!.open(mkMedia, play: true);
     } catch (e) {
-      _errorController.add(GenericPlayerError('Failed to open source: $e'));
+      _errorController.add(GenericPlayerError('Failed to open source: $e', technicalDetails: '$e'));
     }
   }
 
@@ -551,10 +618,12 @@ class MpvPlaybackEngine implements PlaybackEngine {
       _emitSnapshot(_currentSnapshot = _cloneWith(abLoop: null));
     } else {
       await setProperty('ab-loop-a', '${a.inMilliseconds / 1000.0}');
-      if (b != null) {
-        await setProperty('ab-loop-b', '${b.inMilliseconds / 1000.0}');
-      }
+      await setProperty('ab-loop-b', b == null ? 'no' : '${b.inMilliseconds / 1000.0}');
       _emitSnapshot(_currentSnapshot = _cloneWith(abLoop: AbLoop(a: a, b: b)));
+      // B is usually set at the playhead, which mpv treats as already past it; start the loop now.
+      if (b != null && _currentSnapshot.position >= b - const Duration(milliseconds: 250)) {
+        await seek(a, mode: SeekMode.exact);
+      }
     }
   }
 
@@ -580,6 +649,8 @@ class MpvPlaybackEngine implements PlaybackEngine {
       final dynamic platform = _player!.platform;
       if (platform != null) {
         final val = await platform.getProperty(name);
+        // media_kit's native player returns every property as a string.
+        if (val is String) return _parseProperty<T>(val);
         if (val is T) return val;
         if (T == double && val is num) return val.toDouble() as T;
         if (T == int && val is num) return val.toInt() as T;
@@ -588,6 +659,18 @@ class MpvPlaybackEngine implements PlaybackEngine {
       }
     } catch (_) {}
     return null;
+  }
+
+  static T? _parseProperty<T>(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty) return null;
+    final Object? parsed = switch (T) {
+      const (double) => double.tryParse(value),
+      const (int) => int.tryParse(value) ?? double.tryParse(value)?.toInt(),
+      const (bool) => switch (value) { 'yes' || 'true' => true, 'no' || 'false' => false, _ => null },
+      _ => value,
+    };
+    return parsed is T ? parsed : null;
   }
 
   @override

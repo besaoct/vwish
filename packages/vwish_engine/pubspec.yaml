@@ -14,6 +14,7 @@ dependencies:
     path: ../vwish_domain
   media_kit: ^1.1.10
   media_kit_video: ^1.2.4
+  path_provider: ^2.1.3
 
 dev_dependencies:
   flutter_test:

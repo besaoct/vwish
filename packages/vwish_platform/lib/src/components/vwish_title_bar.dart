@@ -3,15 +3,28 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+// vwish_platform does not depend on the design system, so its colors mirror the Vwish tokens.
+const Color _background = Color(0xFF07080C);
+const Color _hairline = Color(0x14FFFFFF);
+const Color _textSecondary = Color(0xFFA0A6BC);
+const Color _primary = Color(0xFF5E60EE);
+const Color _primaryLight = Color(0xFF818CF8);
+const Color _hoverFill = Color(0x0FFFFFFF);
+const Color _pressedFill = Color(0x1AFFFFFF);
+const Color _closeHover = Color(0x29EF4444);
+
 class VwishTitleBar extends StatelessWidget {
-  final String title;
+  static const double height = 38;
+
+  /// Hidden, along with the app mark, when null (e.g. while the player is locked).
+  final String? title;
   final Widget? trailing;
   final bool isAlwaysOnTop;
   final VoidCallback? onToggleAlwaysOnTop;
 
   const VwishTitleBar({
     super.key,
-    this.title = 'Vwish Player',
+    this.title = 'Vwish',
     this.trailing,
     this.isAlwaysOnTop = false,
     this.onToggleAlwaysOnTop,
@@ -24,66 +37,64 @@ class VwishTitleBar extends StatelessWidget {
     }
 
     final isMac = Platform.isMacOS;
+    final title = this.title;
 
     return Container(
-      height: 38,
-      padding: EdgeInsets.only(left: isMac ? 78 : 12, right: 12),
+      height: height,
+      padding: EdgeInsets.only(left: isMac ? 78 : 12, right: 8),
       decoration: const BoxDecoration(
-        color: Color(0xD907080C),
-        border: Border(
-          bottom: BorderSide(color: Color(0xFF1E2230), width: 1),
-        ),
+        color: _background,
+        border: Border(bottom: BorderSide(color: _hairline, width: 0.8)),
       ),
       child: Stack(
         children: [
-          // Drag Window Region
           const Positioned.fill(
             child: DragToMoveArea(
               child: SizedBox.expand(),
             ),
           ),
-
-          // Content
           Row(
             children: [
-              if (!isMac)
+              if (!isMac && title != null)
                 const Padding(
                   padding: EdgeInsets.only(right: 8),
-                  child: Icon(Icons.play_circle_fill_rounded, color: Color(0xFF6366F1), size: 18),
+                  child: Icon(Icons.play_circle_fill_rounded, color: _primary, size: 18),
                 ),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFA0A6BC),
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              Expanded(
+                child: title == null
+                    ? const SizedBox.shrink()
+                    : IgnorePointer(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _textSecondary,
+                          ),
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
               ),
-              const Spacer(),
               if (onToggleAlwaysOnTop != null)
-                IconButton(
-                  icon: Icon(
-                    isAlwaysOnTop ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-                    size: 16,
-                    color: isAlwaysOnTop ? const Color(0xFF6366F1) : const Color(0xFF6B728D),
-                  ),
-                  splashRadius: 14,
-                  onPressed: onToggleAlwaysOnTop,
+                _TitleBarButton(
+                  icon: isAlwaysOnTop ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                  color: isAlwaysOnTop ? _primaryLight : _textSecondary,
                   tooltip: isAlwaysOnTop ? 'Unpin window (T)' : 'Pin window on top (T)',
+                  onPressed: onToggleAlwaysOnTop!,
                 ),
               if (trailing != null) trailing!,
               if (Platform.isWindows || Platform.isLinux) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.minimize_rounded, size: 16, color: Color(0xFFA0A6BC)),
-                  splashRadius: 14,
+                const SizedBox(width: 4),
+                _TitleBarButton(
+                  icon: Icons.minimize_rounded,
+                  tooltip: 'Minimize',
                   onPressed: () => windowManager.minimize(),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.crop_square_rounded, size: 16, color: Color(0xFFA0A6BC)),
-                  splashRadius: 14,
+                _TitleBarButton(
+                  icon: Icons.crop_square_rounded,
+                  tooltip: 'Maximize',
                   onPressed: () async {
                     if (await windowManager.isMaximized()) {
                       windowManager.unmaximize();
@@ -92,9 +103,10 @@ class VwishTitleBar extends StatelessWidget {
                     }
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 16, color: Color(0xFFA0A6BC)),
-                  splashRadius: 14,
+                _TitleBarButton(
+                  icon: Icons.close_rounded,
+                  tooltip: 'Close',
+                  hoverColor: _closeHover,
                   onPressed: () => windowManager.close(),
                 ),
               ],
@@ -105,3 +117,67 @@ class VwishTitleBar extends StatelessWidget {
     );
   }
 }
+
+/// Small circular icon button with hover and press tints (no ripple).
+class _TitleBarButton extends StatefulWidget {
+  const _TitleBarButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.color = _textSecondary,
+    this.hoverColor = _hoverFill,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Color color;
+  final Color hoverColor;
+
+  @override
+  State<_TitleBarButton> createState() => _TitleBarButtonState();
+}
+
+class _TitleBarButtonState extends State<_TitleBarButton> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = _pressed
+        ? _pressedFill
+        : _hovered
+            ? widget.hoverColor
+            : const Color(0x00FFFFFF);
+    return Tooltip(
+      message: widget.tooltip,
+      child: Semantics(
+        button: true,
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          onEnter: (_) => setState(() => _hovered = true),
+          onExit: (_) => setState(() => _hovered = false),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (_) => setState(() => _pressed = true),
+            onTapCancel: () => setState(() => _pressed = false),
+            onTapUp: (_) => setState(() => _pressed = false),
+            onTap: widget.onPressed,
+            child: SizedBox(
+              width: 34,
+              height: VwishTitleBar.height,
+              child: Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: fill),
+                  child: Icon(widget.icon, size: 16, color: widget.color),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }}

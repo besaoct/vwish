@@ -39,7 +39,14 @@ class MediaTrack {
   String get displayName {
     if (title != null && title!.isNotEmpty) return title!;
     if (language != null && language!.isNotEmpty) return language!.toUpperCase();
-    return '$type #$id';
+    if (id == 'auto') return 'Auto';
+    if (id == 'no') return 'Off';
+    final kind = switch (type) {
+      TrackType.video => 'Video',
+      TrackType.audio => 'Audio',
+      TrackType.subtitle => 'Subtitle',
+    };
+    return '$kind $id';
   }
 
   @override

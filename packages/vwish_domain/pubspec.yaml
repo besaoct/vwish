@@ -1,5 +1,5 @@
 name: vwish_domain
-description: Pure Dart domain models, entities, and state objects for Vwish Player.
+description: Pure Dart domain models, entities, and state objects for Vwish.
 version: 1.0.0
 publish_to: 'none'
 

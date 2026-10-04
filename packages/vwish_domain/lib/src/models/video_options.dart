@@ -119,7 +119,7 @@ class SubtitleStyle {
   final String assOverrideMode; // 'yes', 'no', 'force', 'strip'
 
   const SubtitleStyle({
-    this.fontFamily = 'Inter',
+    this.fontFamily = 'Figtree',
     this.fontSize = 55.0,
     this.fontColor = 0xFFFFFFFF,
     this.borderColor = 0xFF000000,
@@ -174,7 +174,8 @@ class SubtitleStyle {
 
   factory SubtitleStyle.fromJson(Map<String, dynamic> json) {
     return SubtitleStyle(
-      fontFamily: json['fontFamily'] as String? ?? 'Inter',
+      // Inter was never bundled; saved styles move to Figtree, the app's only typeface.
+      fontFamily: switch (json['fontFamily']) { final String f when f != 'Inter' => f, _ => 'Figtree' },
       fontSize: (json['fontSize'] as num?)?.toDouble() ?? 55.0,
       fontColor: json['fontColor'] as int? ?? 0xFFFFFFFF,
       borderColor: json['borderColor'] as int? ?? 0xFF000000,

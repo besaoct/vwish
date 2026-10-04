@@ -46,4 +46,20 @@ void main() {
       expect(queue.hasPrevious, isFalse);
     });
   });
+
+  test('track labels are human-readable when a track has no title or language', () {
+    expect(const MediaTrack(id: '2', type: TrackType.audio).displayName, 'Audio 2');
+    expect(const MediaTrack(id: '3', type: TrackType.subtitle).displayName, 'Subtitle 3');
+    expect(const MediaTrack(id: 'auto', type: TrackType.subtitle).displayName, 'Auto');
+    expect(const MediaTrack(id: 'no', type: TrackType.audio).displayName, 'Off');
+    expect(const MediaTrack(id: '1', type: TrackType.audio, language: 'eng').displayName, 'ENG');
+  });
+
+  test('subtitles use Figtree, including styles saved while the default was Inter', () {
+    expect(const SubtitleStyle().fontFamily, 'Figtree');
+    final legacy = SubtitleStyle.fromJson({...const SubtitleStyle().toJson(), 'fontFamily': 'Inter'});
+    expect(legacy.fontFamily, 'Figtree');
+    final custom = SubtitleStyle.fromJson({...const SubtitleStyle().toJson(), 'fontFamily': 'Georgia'});
+    expect(custom.fontFamily, 'Georgia');
+  });
 }

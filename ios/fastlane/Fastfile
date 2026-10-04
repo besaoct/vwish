@@ -1,0 +1,77 @@
+# iOS release lanes. Run from the ios/ folder:  fastlane ios <lane>
+# Credentials are read from ios/fastlane/.env (git-ignored); see .env.example.
+
+default_platform(:ios)
+
+ROOT = File.expand_path("../..", __dir__)
+IPA_DIR = File.join(ROOT, "build/ios/ipa")
+
+platform :ios do
+  def api_key
+    app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+    )
+  end
+
+  def next_build_number
+    latest_testflight_build_number(api_key: api_key, initial_build_number: 0) + 1
+  rescue StandardError => e
+    UI.important("Could not query latest TestFlight build number: #{e.message}. Using 1.")
+    1
+  end
+
+  def flutter_ipa(build_number)
+    Dir.chdir(ROOT) do
+      sh("flutter", "build", "ipa", "--release",
+         "--export-options-plist=ios/ExportOptions.plist",
+         "--build-number=#{build_number}")
+    end
+    Dir[File.join(IPA_DIR, "*.ipa")].max_by { |f| File.mtime(f) } || File.join(IPA_DIR, "vwish.ipa")
+  end
+
+  desc "Build a signed App Store IPA locally (build number from BUILD_NUMBER or 1)"
+  lane :build do
+    flutter_ipa(ENV["BUILD_NUMBER"] || 1)
+  end
+
+  desc "Sync metadata, screenshots, and age rating to App Store Connect without binary"
+  lane :metadata do
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false
+    )
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    ipa = flutter_ipa(next_build_number)
+    upload_to_testflight(api_key: api_key, ipa: ipa, skip_waiting_for_build_processing: true)
+  end
+
+  desc "Build signed IPA and upload binary to App Store Connect"
+  lane :release do
+    build_num = ENV["BUILD_NUMBER"] || 1
+    ipa = flutter_ipa(build_num)
+    upload_to_app_store(
+      api_key: api_key,
+      ipa: ipa,
+      force: true,
+      skip_metadata: false,
+      skip_screenshots: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false
+    )
+  end
+end

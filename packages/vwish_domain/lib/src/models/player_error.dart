@@ -59,6 +59,17 @@ class AudioDeviceLost extends PlayerError {
             recoverable: true, technicalDetails: details);
 }
 
+/// No audio device could be opened; video keeps playing silently.
+class AudioOutputUnavailable extends PlayerError {
+  const AudioOutputUnavailable({String? details})
+      : super('No audio output available', recoverable: true, technicalDetails: details);
+}
+
+/// Something mpv reported that does not interrupt playback (a bad frame, a decoder fallback).
+class PlaybackWarning extends PlayerError {
+  const PlaybackWarning(super.message) : super(recoverable: true);
+}
+
 class GenericPlayerError extends PlayerError {
   const GenericPlayerError(super.message, {super.recoverable, super.technicalDetails});
 }

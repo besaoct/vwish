@@ -11,13 +11,15 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
+__pycache__
 
 # IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
-
+.claude/
+.agents/
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
@@ -51,3 +53,17 @@ app.*.map.json
 /android/.gradle/
 **/.gradle/
 **/local.properties
+
+# Release signing & store credentials
+/android/key.properties
+**/*.jks
+**/*.keystore
+**/*.p8
+**/fastlane/.env
+**/fastlane/*.json
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/test_output
+
+
+skills-lock.json

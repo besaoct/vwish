@@ -1,0 +1,36 @@
+Vwish is the modern, ultra-high performance 4K HDR media player built for speed, fidelity, and versatility. Powered by an advanced hardware-accelerated playback engine, Vwish plays virtually any video format, audio stream, and subtitle file with silky-smooth frame rates and zero battery waste.
+
+Whether you're playing 4K HEVC and AV1 movies from your local storage, streaming live HLS/DASH broadcasts, or opening videos directly from your file manager, Vwish delivers an uncompromising cinematic experience.
+
+KEY HIGHLIGHTS:
+
+UNIVERSAL 4K HDR VIDEO ENGINE
+• Hardware-accelerated decoding for HEVC/H.265, AV1, H.264/AVC, VP9, and ProRes.
+• Wide container support: MKV, MP4, WebM, AVI, MOV, TS, and FLV.
+• True HDR10, HLG, and wide color gamut rendering.
+
+STUDIO-GRADE AUDIO CONTROLS
+• 10-band parametric equalizer with studio presets (Rock, Pop, Classical, Flat, and Custom).
+• Real-time Bass Boost and dynamic volume normalization for clear dialogue.
+• Multi-track audio selection supporting AAC, AC3, E-AC3, TrueHD, FLAC, and Opus.
+
+REAL-TIME STREAM DIAGNOSTICS
+• Built-in network speed test and ping analyzer for stream readiness.
+• Live diagnostics overlay: dropped frames, buffer health, current bitrate, and decoder status.
+• Fast link validation for direct HTTP, HTTPS, and HLS/DASH network streams.
+
+REAL-TIME COLOR GRADING & FILTERS
+• Fine-tune brightness, contrast, saturation, and gamma during live playback.
+• A-B loop repeat for studying scenes, lectures, or music videos.
+• Aspect ratio options: fit, stretch, crop, and cinematic widescreen zoom.
+
+INTUITIVE GESTURE CONTROLS
+• Swipe vertically on the left for brightness; swipe on the right for volume.
+• Horizontal swipes for precision seek with visual thumbnails and configurable seek steps.
+• Screen lock prevents accidental touches during playback.
+
+PRIVACY FIRST & ON-DEVICE
+• 100% on-device sandbox. No telemetry, no tracking scripts, no ads.
+• Background audio playback with notification and media control support.
+
+Download Vwish and experience high-performance mobile video playback.

@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎬 Vwish Video Player
+# 🎬 Vwish
 
 **Ultra-high performance, cross-platform media player powered by Flutter & libmpv.**
 
@@ -16,17 +16,17 @@
 
 ## 🌟 Overview
 
-**Vwish Player** is a modern desktop and mobile media player engineered for audiophiles, cinephiles, and power users. Instead of reinventing media decoding pipelines, Vwish leverages **`libmpv`** and **FFmpeg** behind a modular Flutter architecture, providing hardware-accelerated playback for virtually every container and codec available.
+**Vwish** is a modern desktop and mobile media player engineered for audiophiles, cinephiles, and power users. Instead of reinventing media decoding pipelines, Vwish leverages **`libmpv`** and **FFmpeg** behind a modular Flutter architecture, providing hardware-accelerated playback for virtually every container and codec available.
 
 ---
 
 ## 💖 Sponsor & Support
 
-If you enjoy using **Vwish Player** or find our engineering helpful, consider sponsoring the project to support active development and new features:
+If you enjoy using **Vwish** or find our engineering helpful, consider sponsoring the project to support active development and new features:
 
-- 💖 **GitHub Sponsors**: [github.com/sponsors/besaoct](https://github.com/sponsors/besaoct)
-- ☕ **Buy Me a Coffee**: [buymeacoffee.com/besaoct](https://buymeacoffee.com/besaoct)
-- 🌐 **GitHub Profile**: [github.com/besaoct](https://github.com/besaoct)
+- 💖 **GitHub Sponsors**: [github.com/sponsors/vecvel](https://github.com/sponsors/vecvel)
+- ☕ **Buy Me a Coffee**: [buymeacoffee.com/vecvel](https://buymeacoffee.com/vecvel)
+- 🌐 **GitHub Profile**: [github.com/vecvel](https://github.com/vecvel)
 
 ---
 
@@ -66,7 +66,7 @@ If you enjoy using **Vwish Player** or find our engineering helpful, consider sp
 Vwish is organized as a clean, modular Flutter monorepo:
 
 ```
-vwish_player/
+vwish/
 ├── lib/
 │   ├── app.dart                    # MaterialApp.router with Vwish dark theme & router
 │   ├── main.dart                   # Composition root & MediaKit bootstrap
@@ -100,7 +100,7 @@ vwish_player/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/besaoct/vwish.git
+   git clone https://github.com/vecvel/vwish.git
    cd vwish
    ```
 
@@ -136,5 +136,5 @@ vwish_player/
 
 ## 📄 License & Conduct
 
-- **License**: Proprietary — Copyright © 2026 besaoct. All rights reserved. See [`LICENSE`](LICENSE) for terms.
+- **License**: Proprietary — Copyright © 2026 vecvel. All rights reserved. See [`LICENSE`](LICENSE) for terms.
 - **Code of Conduct**: See [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).

@@ -45,6 +45,13 @@ class FakePlaybackEngine implements PlaybackEngine {
   @override
   Future<void> open(MediaSource source, {Duration? startAt}) async {
     _ticker?.cancel();
+    // Like mpv: a loading snapshot with the previous file's position and duration cleared.
+    emitMockSnapshot(_cloneWith(
+      status: PlaybackStatus.loading,
+      position: Duration.zero,
+      duration: Duration.zero,
+      cacheEnd: Duration.zero,
+    ));
     emitMockSnapshot(_currentSnapshot = PlayerSnapshot(
       status: PlaybackStatus.playing,
       position: startAt ?? Duration.zero,
@@ -86,6 +93,8 @@ class FakePlaybackEngine implements PlaybackEngine {
     });
   }
 
+  static const Object _keep = Object();
+
   PlayerSnapshot _cloneWith({
     PlaybackStatus? status,
     Duration? position,
@@ -102,7 +111,7 @@ class FakePlaybackEngine implements PlaybackEngine {
     AudioFilter? audioFilter,
     Duration? subtitleDelay,
     Duration? audioDelay,
-    AbLoop? abLoop,
+    Object? abLoop = _keep,
   }) {
     return PlayerSnapshot(
       status: status ?? _currentSnapshot.status,
@@ -120,7 +129,7 @@ class FakePlaybackEngine implements PlaybackEngine {
       audioFilter: audioFilter ?? _currentSnapshot.audioFilter,
       subtitleDelay: subtitleDelay ?? _currentSnapshot.subtitleDelay,
       audioDelay: audioDelay ?? _currentSnapshot.audioDelay,
-      abLoop: abLoop ?? _currentSnapshot.abLoop,
+      abLoop: identical(abLoop, _keep) ? _currentSnapshot.abLoop : abLoop as AbLoop?,
     );
   }
 

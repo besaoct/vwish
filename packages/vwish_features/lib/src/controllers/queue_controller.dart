@@ -27,19 +27,28 @@ class QueueController extends StateNotifier<QueueState> {
     await _playerCtrl.openMedia(items[targetIndex]);
   }
 
+  /// Inserts [item] after the current one. Callers should start playback instead when
+  /// nothing is playing ([QueueState.hasCurrent] is false).
   Future<void> playNext(MediaRef item) async {
     final list = List<MediaRef>.from(state.items);
-    if (state.currentIndex >= 0 && state.currentIndex < list.length) {
+    if (state.hasCurrent) {
       list.insert(state.currentIndex + 1, item);
     } else {
       list.add(item);
     }
-    state = state.copyWith(items: list);
+    state = state.copyWith(items: list, unShuffledItems: _withOriginal((orig) {
+      final at = state.currentItem == null ? -1 : orig.indexOf(state.currentItem!);
+      if (at >= 0) {
+        orig.insert(at + 1, item);
+      } else {
+        orig.add(item);
+      }
+    }));
   }
 
   Future<void> addToQueue(List<MediaRef> items) async {
     final list = List<MediaRef>.from(state.items)..addAll(items);
-    state = state.copyWith(items: list);
+    state = state.copyWith(items: list, unShuffledItems: _withOriginal((orig) => orig.addAll(items)));
     if (state.currentIndex == -1 && list.isNotEmpty) {
       await jumpTo(0);
     }
@@ -48,16 +57,31 @@ class QueueController extends StateNotifier<QueueState> {
   Future<void> remove(int index) async {
     if (index < 0 || index >= state.items.length) return;
     final list = List<MediaRef>.from(state.items);
-    list.removeAt(index);
+    final removed = list.removeAt(index);
+    final original = _withOriginal((orig) => orig.remove(removed));
+    final wasCurrent = index == state.currentIndex;
 
-    var cur = state.currentIndex;
-    if (index < cur) {
-      cur--;
-    } else if (index == cur) {
-      if (cur >= list.length) cur = list.length - 1;
+    if (!wasCurrent) {
+      final cur = index < state.currentIndex ? state.currentIndex - 1 : state.currentIndex;
+      state = state.copyWith(items: list, currentIndex: cur, unShuffledItems: original);
+      return;
     }
+    if (list.isEmpty) {
+      state = state.copyWith(items: list, currentIndex: -1, unShuffledItems: original);
+      await _playerCtrl.stop();
+      return;
+    }
+    // The item that slid into the removed slot (or the new last one) plays in its place.
+    state = state.copyWith(items: list, unShuffledItems: original);
+    await jumpTo(min(index, list.length - 1));
+  }
 
-    state = state.copyWith(items: list, currentIndex: cur);
+  /// The pre-shuffle order with [edit] applied; unchanged while not shuffled.
+  List<MediaRef>? _withOriginal(void Function(List<MediaRef> orig) edit) {
+    if (!state.isShuffled) return null;
+    final orig = List<MediaRef>.from(state.unShuffledItems);
+    edit(orig);
+    return orig;
   }
 
   Future<void> move(int from, int to) async {
@@ -186,7 +210,7 @@ class QueueController extends StateNotifier<QueueState> {
       return;
     }
 
-    if (state.hasNext) {
+    if (state.repeatMode == RepeatMode.one || state.hasNext) {
       await next(userInitiated: false);
     }
   }

@@ -9,6 +9,7 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    AppDelegate.setupMediaChannel(flutterViewController.engine.binaryMessenger)
 
     super.awakeFromNib()
   }
