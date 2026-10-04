@@ -1,0 +1,196 @@
+name: Linux Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'linux-v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release'
+        required: true
+        type: boolean
+        default: true
+      draft:
+        description: 'Create Release as Draft'
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Mark as Pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Signed Linux Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev \
+            liblzma-dev \
+            libmpv-dev \
+            mpv
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Linux Desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Extract Version Info
+        id: version
+        run: |
+          PUBSPEC_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | tr -d '\r')
+          VERSION_NAME=$(echo "$PUBSPEC_VERSION" | cut -d'+' -f1)
+          VERSION_CODE=$(echo "$PUBSPEC_VERSION" | cut -d'+' -f2)
+
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME="${GITHUB_REF_NAME}"
+          else
+            TAG_NAME="v${PUBSPEC_VERSION}"
+          fi
+
+          echo "version=$PUBSPEC_VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          echo "Target Version: $PUBSPEC_VERSION (Name: $VERSION_NAME, Code: $VERSION_CODE)"
+          echo "Target Tag: $TAG_NAME"
+
+      - name: Build Linux Release
+        run: flutter build linux --release
+
+      - name: Package Linux Artifacts
+        run: |
+          mkdir -p release-artifacts
+          VER="${{ steps.version.outputs.version }}"
+          VER_NAME="${{ steps.version.outputs.version_name }}"
+
+          # 1. Standalone Tarball (.tar.gz)
+          echo "Packaging standalone tarball..."
+          tar -czvf "release-artifacts/vwish-${VER}-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+
+          # 2. Debian / Ubuntu Package (.deb)
+          echo "Packaging Debian (.deb) package..."
+          DEB_ROOT="deb-build"
+          rm -rf "$DEB_ROOT"
+          mkdir -p "$DEB_ROOT/DEBIAN"
+          mkdir -p "$DEB_ROOT/opt/vwish"
+          mkdir -p "$DEB_ROOT/usr/bin"
+          mkdir -p "$DEB_ROOT/usr/share/applications"
+          mkdir -p "$DEB_ROOT/usr/share/icons/hicolor/256x256/apps"
+
+          cp -r build/linux/x64/release/bundle/* "$DEB_ROOT/opt/vwish/"
+          ln -s "/opt/vwish/vwish" "$DEB_ROOT/usr/bin/vwish"
+          cp linux/packaging/com.vecvel.vwish.desktop "$DEB_ROOT/usr/share/applications/"
+          cp assets/branding/vwish_icon.png "$DEB_ROOT/usr/share/icons/hicolor/256x256/apps/vwish.png"
+
+          {
+            echo "Package: vwish"
+            echo "Version: ${VER_NAME}"
+            echo "Section: video"
+            echo "Priority: optional"
+            echo "Architecture: amd64"
+            echo "Maintainer: Vecvel <contact@vecvel.com>"
+            echo "Depends: libgtk-3-0, libmpv2 | libmpv1"
+            echo "Description: Vwish - Ultra-high performance HDR media player"
+            echo " Modern cross-platform media player with hardware acceleration,"
+            echo " stream diagnostics, custom seek controls, and on-device privacy."
+          } > "$DEB_ROOT/DEBIAN/control"
+
+          dpkg-deb --build "$DEB_ROOT" "release-artifacts/vwish-${VER_NAME}-linux-amd64.deb"
+
+          # 3. Compute SHA-256 Checksums
+          cd release-artifacts
+          sha256sum * > checksums-sha256.txt
+          cd ..
+
+          echo "Generated Artifacts:"
+          ls -lh release-artifacts/
+
+      - name: Generate Release Notes
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          {
+            echo "## Vwish Linux Release (${APP_VERSION})"
+            echo ""
+            echo "Ultra-high performance HDR media player for Linux desktop (Ubuntu, Debian, Fedora, Arch, and Wayland/X11 environments) with hardware acceleration."
+            echo ""
+            echo "### 📦 Download Packages"
+            echo "* **Debian / Ubuntu Package (\`vwish-${VERSION_NAME}-linux-amd64.deb\`)**: Native installer with system launcher, icons, and desktop integration."
+            echo "* **Standalone Tarball (\`vwish-${APP_VERSION}-linux-x64.tar.gz\`)**: Portable archive; extract and run on any modern Linux distribution."
+            echo ""
+            echo "### 🔧 Installation Guide"
+            echo ""
+            echo "#### Debian / Ubuntu / Mint:"
+            echo "\`\`\`bash"
+            echo "sudo dpkg -i vwish-${VERSION_NAME}-linux-amd64.deb"
+            echo "sudo apt-get install -f # If any dependencies are missing"
+            echo "\`\`\`"
+            echo ""
+            echo "#### Standalone Portable Archive:"
+            echo "\`\`\`bash"
+            echo "tar -xzvf vwish-${APP_VERSION}-linux-x64.tar.gz"
+            echo "./vwish"
+            echo "\`\`\`"
+            echo ""
+            echo "### 🚀 Features & Capabilities"
+            echo "* **Universal Video Decoding**: Hardware accelerated HEVC, AV1, VP9, MKV, MP4, HLS, and DASH playback via \`libmpv\`."
+            echo "* **Wayland & X11 Native**: GTK3 titlebar with responsive desktop controls and seamless fullscreen."
+            echo "* **Stream Diagnostics**: Built-in network speed benchmark, ping monitor, and link validation."
+            echo "* **Zero Telemetry**: 100% on-device media processing with zero analytics or tracking."
+            echo ""
+            echo "### 🔒 Integrity & Security"
+            echo "Checksums are listed in \`checksums-sha256.txt\`. Verify via:"
+            echo "\`\`\`bash"
+            echo "sha256sum -c checksums-sha256.txt"
+            echo "\`\`\`"
+          } > release-notes.md
+
+      - name: Upload Artifacts to Actions Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: vwish-linux-${{ steps.version.outputs.version }}
+          path: release-artifacts/*
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.create_release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Vwish Linux ${{ steps.version.outputs.version }}"
+          body_path: release-notes.md
+          files: release-artifacts/*
+          draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

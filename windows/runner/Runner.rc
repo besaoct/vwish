@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.vwish" "\0"
+            VALUE "CompanyName", "Vwish" "\0"
             VALUE "FileDescription", "Vwish" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "vwish" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.vwish. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Vwish. All rights reserved." "\0"
             VALUE "OriginalFilename", "vwish.exe" "\0"
             VALUE "ProductName", "Vwish" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

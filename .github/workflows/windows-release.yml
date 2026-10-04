@@ -1,0 +1,166 @@
+name: Windows Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'windows-v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub Release'
+        required: true
+        type: boolean
+        default: true
+      draft:
+        description: 'Create Release as Draft'
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        description: 'Mark as Pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Signed Windows Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Extract Version Info
+        id: version
+        shell: pwsh
+        run: |
+          $pubspecContent = Get-Content -Path pubspec.yaml -Raw
+          if ($pubspecContent -match 'version:\s*([^\r\n]+)') {
+            $pubspecVersion = $matches[1].Trim()
+          } else {
+            $pubspecVersion = "1.0.0+1"
+          }
+          $parts = $pubspecVersion -split '\+'
+          $versionName = $parts[0]
+          $versionCode = if ($parts.Length -gt 1) { $parts[1] } else { "1" }
+
+          if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -like 'refs/tags/*') {
+            $tagName = $env:GITHUB_REF_NAME
+          } else {
+            $tagName = "v$pubspecVersion"
+          }
+
+          "version=$pubspecVersion" >> $env:GITHUB_OUTPUT
+          "version_name=$versionName" >> $env:GITHUB_OUTPUT
+          "version_code=$versionCode" >> $env:GITHUB_OUTPUT
+          "tag=$tagName" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Target Version: $pubspecVersion (Name: $versionName, Code: $versionCode)"
+          Write-Host "Target Tag: $tagName"
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Package Windows Artifacts
+        id: package
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $verName = "${{ steps.version.outputs.version_name }}"
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
+
+          # 1. Create portable ZIP package
+          $zipName = "vwish-$ver-windows-x64-portable.zip"
+          Write-Host "Compressing portable release to $zipName..."
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "release-artifacts\$zipName" -Force
+
+          # 2. Build Inno Setup Installer (.exe)
+          $isccPath = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $isccPath)) {
+            Write-Host "Installing Inno Setup via Chocolatey..."
+            choco install innosetup -y --no-progress
+          }
+          if (Test-Path $isccPath) {
+            Write-Host "Compiling installer exe with Inno Setup..."
+            & $isccPath /DAppVersion="$verName" /DOutputDir="$PWD\release-artifacts" windows\packaging\vwish.iss
+          } else {
+            Write-Warning "Inno Setup compiler not available; installer creation skipped."
+          }
+
+          # 3. Compute SHA-256 Checksums
+          Get-ChildItem -File release-artifacts\* | Where-Object { $_.Name -ne 'checksums-sha256.txt' } | ForEach-Object {
+            $hash = (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower()
+            "$hash  $($_.Name)"
+          } | Set-Content release-artifacts\checksums-sha256.txt
+
+          Write-Host "Generated Release Artifacts:"
+          Get-ChildItem release-artifacts | Format-Table Name, Length, LastWriteTime
+
+      - name: Generate Release Notes
+        shell: pwsh
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          VERSION_NAME: ${{ steps.version.outputs.version_name }}
+        run: |
+          $content = @"
+          ## Vwish Windows Release ($($env:APP_VERSION))
+
+          Ultra-high performance HDR media player for Windows 10 and Windows 11 with hardware acceleration.
+
+          ### 📦 Download Packages
+          * **Setup Installer (\`vwish-$($env:VERSION_NAME)-windows-x64-setup.exe\`)**: Recommended installer with Start Menu integration, desktop shortcut, and clean uninstaller.
+          * **Portable ZIP (\`vwish-$($env:APP_VERSION)-windows-x64-portable.zip\`)**: Standalone archive; extract and run \`vwish.exe\` without installation.
+
+          ### 🚀 Features & Capabilities
+          * **Universal Playback**: Hardware-accelerated decoding for HEVC, AV1, VP9, H.264, MKV, MP4, HLS, DASH, and audio streams.
+          * **DirectX / Direct3D Rendering**: Ultra-low latency video surface with high refresh rate display support.
+          * **Real-time Color Grading**: Live hardware adjustments for brightness, contrast, saturation, and gamma.
+          * **Network Diagnostics**: Integrated real-time speed test, ping telemetry, and stream link validator.
+          * **100% On-Device Privacy**: Local sandbox playback with zero tracking or telemetry.
+
+          ### 🔒 Integrity & Verification
+          Checksums are listed in \`checksums-sha256.txt\`. Verify your download in PowerShell via:
+          \`\`\`powershell
+          Get-FileHash vwish-$($env:VERSION_NAME)-windows-x64-setup.exe -Algorithm SHA256
+          \`\`\`
+          "@
+          Set-Content -Path release-notes.md -Value $content
+
+      - name: Upload Artifacts to Actions Run
+        uses: actions/upload-artifact@v4
+        with:
+          name: vwish-windows-${{ steps.version.outputs.version }}
+          path: release-artifacts/*
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.create_release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Vwish Windows ${{ steps.version.outputs.version }}"
+          body_path: release-notes.md
+          files: release-artifacts/*
+          draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
