@@ -66,7 +66,7 @@ jobs:
           if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -like 'refs/tags/*') {
             $tagName = $env:GITHUB_REF_NAME
           } else {
-            $tagName = "v$pubspecVersion"
+            $tagName = "windows-v$pubspecVersion"
           }
 
           "version=$pubspecVersion" >> $env:GITHUB_OUTPUT
@@ -161,6 +161,7 @@ jobs:
           files: release-artifacts/*
           draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
           prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
-          generate_release_notes: true
+          append_body: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

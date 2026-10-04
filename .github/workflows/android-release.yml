@@ -95,7 +95,7 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG_NAME="${GITHUB_REF_NAME}"
           else
-            TAG_NAME="v${PUBSPEC_VERSION}"
+            TAG_NAME="android-v${PUBSPEC_VERSION}"
           fi
           
           echo "version=$PUBSPEC_VERSION" >> $GITHUB_OUTPUT
@@ -191,6 +191,7 @@ jobs:
           files: release-artifacts/*
           draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
           prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
-          generate_release_notes: true
+          append_body: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
