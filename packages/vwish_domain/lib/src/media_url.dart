@@ -14,6 +14,14 @@ class MediaUrl {
     'mp4', 'mkv', 'm4v', 'mov', 'avi', 'webm', 'ts', 'm2ts', 'flv', 'wmv', 'ogv', '3gp', 'mpg', 'mpeg', 'm3u8', 'mpd',
   };
 
+  static const _unsupportedExtensions = {
+    'html', 'htm', 'php', 'asp', 'aspx', 'jsp',
+    'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'json', 'xml',
+    'zip', 'rar', 'tar', 'gz', '7z', 'bz2', 'iso', 'exe', 'apk', 'dmg', 'pkg', 'deb', 'rpm',
+    'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'ico', 'bmp', 'tiff', 'tif', 'avif',
+    'css', 'js',
+  };
+
   static final _schemePrefix = RegExp(r'^([a-zA-Z][a-zA-Z0-9+.\-]*):(.*)$');
   static final _hostPort = RegExp(r'^\d+(?:[/?#]|$)');
   static final _lineBreaks = RegExp(r'[\r\n\t]');
@@ -75,6 +83,15 @@ class MediaUrl {
       }
     }
 
+    final lastSegment = uri.pathSegments.where((s) => s.isNotEmpty).lastOrNull;
+    if (lastSegment != null && lastSegment.contains('.')) {
+      final ext = lastSegment.split('.').last.toLowerCase();
+      if (_unsupportedExtensions.contains(ext)) {
+        return _ParseResult.error(
+            'This link points to an unsupported file format (.$ext). Enter a link to a video or stream.');
+      }
+    }
+
     final url = uri.toString();
     return _ParseResult.ref(MediaRef(id: url, title: _titleFor(uri), pathOrUri: url, isRemote: true));
   }
@@ -88,6 +105,13 @@ class MediaUrl {
     }
     final name = uri.pathSegments.where((s) => s.isNotEmpty).lastOrNull;
     if (name == null) return const _ParseResult.error(_invalidMessage);
+    if (name.contains('.')) {
+      final ext = name.split('.').last.toLowerCase();
+      if (_unsupportedExtensions.contains(ext)) {
+        return _ParseResult.error(
+            'This file format (.$ext) is unsupported. Choose a video or audio file.');
+      }
+    }
     return _ParseResult.ref(MediaRef(id: path, title: name, pathOrUri: path));
   }
 

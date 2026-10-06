@@ -214,4 +214,11 @@ class QueueController extends StateNotifier<QueueState> {
       await next(userInitiated: false);
     }
   }
+
+  /// Clears the active queue and stops/resets the player.
+  Future<void> clear() async {
+    _consecutiveFailures = 0;
+    state = const QueueState();
+    await _playerCtrl.stopAndClear();
+  }
 }

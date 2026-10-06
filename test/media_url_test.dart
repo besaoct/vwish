@@ -117,5 +117,18 @@ void main() {
       expect(MediaUrl.tryParse('movie.mkv'), isNull);
       expect(MediaUrl.validationError('movie.mkv'), contains('full link'));
     });
+
+    test('rejects unsupported file formats in url and file path', () {
+      for (final input in [
+        'https://example.com/photo.png',
+        'https://example.com/document.pdf',
+        'https://example.com/index.html',
+        'https://example.com/archive.zip',
+        'file:///Users/me/photo.jpg',
+      ]) {
+        expect(MediaUrl.tryParse(input), isNull, reason: input);
+        expect(MediaUrl.validationError(input), contains('unsupported'), reason: input);
+      }
+    });
   });
 }

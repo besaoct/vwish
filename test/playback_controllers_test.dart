@@ -137,6 +137,23 @@ void main() {
       expect(queueState().items, [a, extra, c]);
       expect(queueState().currentItem, a);
     });
+
+    test('clear resets queue items and clears player state', () async {
+      await queue().playFrom([a, b]);
+      await _flush();
+      expect(queueState().items.length, 2);
+      expect(playerState().currentMediaRef, a);
+
+      await queue().clear();
+      await _flush();
+
+      expect(queueState().items, isEmpty);
+      expect(queueState().currentItem, isNull);
+      expect(queueState().currentIndex, -1);
+      expect(playerState().currentMediaRef, isNull);
+      expect(playerState().status, PlaybackStatus.idle);
+      expect(playerState().error, isNull);
+    });
   });
 
   group('PlayerController', () {
@@ -178,6 +195,38 @@ void main() {
       expect(engine.calls.where((call) => call.startsWith('subDelay')), ['subDelay 0']);
       expect(env.library.getRecentlyPlayed().map((m) => m.pathOrUri), [b.pathOrUri]);
       expect(playerState().currentMediaRef, b);
+    });
+
+    test('fatal error transitions status to error and does not revert on snapshot', () async {
+      await player().openMedia(a);
+      await _flush();
+
+      engine.emitMockError(const UnsupportedFormat('test.xyz', details: 'Failed to recognize format'));
+      await _flush();
+
+      expect(playerState().status, PlaybackStatus.error);
+      expect(playerState().error, isA<UnsupportedFormat>());
+
+      // Subsequent engine snapshot reporting playing status should NOT overwrite error status
+      engine.emitMockSnapshot(_snapshot(PlaybackStatus.playing, const Duration(seconds: 1)));
+      await _flush();
+
+      expect(playerState().status, PlaybackStatus.error);
+      expect(playerState().error, isA<UnsupportedFormat>());
+    });
+
+    test('togglePlay when in error state retries openMedia', () async {
+      await player().openMedia(a);
+      await _flush();
+      engine.calls.clear();
+
+      engine.emitMockError(const UnsupportedFormat('test.xyz'));
+      await _flush();
+      expect(playerState().status, PlaybackStatus.error);
+
+      await player().togglePlay();
+      await _flush();
+      expect(engine.calls, contains('open ${a.pathOrUri}'));
     });
   });
 

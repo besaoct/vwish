@@ -64,15 +64,19 @@ class PlayerController extends StateNotifier<PlayerState> {
     }
     if (s.status == PlaybackStatus.playing) _playedSinceOpen = true;
     final wasEnded = state.status == PlaybackStatus.ended;
+    final nextStatus = state.status == PlaybackStatus.error && state.error != null
+        ? PlaybackStatus.error
+        : s.status;
+
     // Handle sleep inhibitor
-    if (s.status == PlaybackStatus.playing && state.status != PlaybackStatus.playing) {
+    if (nextStatus == PlaybackStatus.playing && state.status != PlaybackStatus.playing) {
       PlatformBridge.setSleepInhibited(true);
-    } else if (s.status != PlaybackStatus.playing && state.status == PlaybackStatus.playing) {
+    } else if (nextStatus != PlaybackStatus.playing && state.status == PlaybackStatus.playing) {
       PlatformBridge.setSleepInhibited(false);
     }
 
     state = state.copyWith(
-      status: s.status,
+      status: nextStatus,
       position: s.position,
       duration: s.duration,
       cacheEnd: s.cacheEnd,
@@ -110,7 +114,15 @@ class PlayerController extends StateNotifier<PlayerState> {
       if (_reportedNoAudio) return;
       _reportedNoAudio = true;
     }
-    state = state.copyWith(error: err);
+    final isFatal = err is! AudioOutputUnavailable && err is! DecoderInitFailed;
+    if (isFatal) {
+      PlatformBridge.setSleepInhibited(false);
+      _engine.pause();
+    }
+    state = state.copyWith(
+      error: err,
+      status: isFatal ? PlaybackStatus.error : state.status,
+    );
   }
 
   void _syncHistoryDuration() {
@@ -144,6 +156,7 @@ class PlayerController extends StateNotifier<PlayerState> {
       currentSource: media.isRemote
           ? MediaSource.network(media.pathOrUri, title: media.title)
           : MediaSource.file(media.pathOrUri, title: media.title),
+      status: PlaybackStatus.loading,
       position: Duration.zero,
       duration: Duration.zero,
       error: null,
@@ -172,10 +185,37 @@ class PlayerController extends StateNotifier<PlayerState> {
     _syncHistoryDuration();
   }
 
-  Future<void> togglePlay() => _engine.playOrPause();
-  Future<void> play() => _engine.play();
+  Future<void> togglePlay() {
+    if (state.status == PlaybackStatus.error && state.currentMediaRef != null) {
+      return openMedia(state.currentMediaRef!);
+    }
+    return _engine.playOrPause();
+  }
+
+  Future<void> play() {
+    if (state.status == PlaybackStatus.error && state.currentMediaRef != null) {
+      return openMedia(state.currentMediaRef!);
+    }
+    return _engine.play();
+  }
+
   Future<void> pause() => _engine.pause();
   Future<void> stop() => _engine.stop();
+
+  Future<void> stopAndClear() async {
+    _openToken++;
+    _saveCurrentResume();
+    await _engine.stop();
+    PlatformBridge.setSleepInhibited(false);
+    state = state.copyWith(
+      currentMediaRef: null,
+      currentSource: null,
+      status: PlaybackStatus.idle,
+      position: Duration.zero,
+      duration: Duration.zero,
+      error: null,
+    );
+  }
 
   Future<void> seek(Duration pos, {SeekMode mode = SeekMode.keyframe}) =>
       _engine.seek(pos, mode: mode);

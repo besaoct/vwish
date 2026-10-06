@@ -5,6 +5,7 @@ import 'package:vwish_domain/vwish_domain.dart';
 import 'package:vwish_ui_kit/vwish_ui_kit.dart';
 
 import '../controllers/providers.dart';
+import '../player/vwish_player_actions.dart';
 import 'add_to_playlist_sheet.dart';
 import 'library_actions.dart';
 import 'library_controller.dart';
@@ -517,14 +518,15 @@ class _NowPlayingCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final media = ref.watch(queueControllerProvider.select((q) => q.currentItem));
     if (media == null) return const SizedBox.shrink();
-    final (status, position, duration) = ref.watch(
-      playerControllerProvider.select((s) => (s.status, s.position.inSeconds, s.duration.inSeconds)),
+    final (status, position, duration, error) = ref.watch(
+      playerControllerProvider.select((s) => (s.status, s.position.inSeconds, s.duration.inSeconds, s.error)),
     );
-    final playing = status == PlaybackStatus.playing || status == PlaybackStatus.buffering;
-    final progress = duration > 0 ? position / duration : 0.0;
+    final isError = status == PlaybackStatus.error || (error != null && playerErrorToastKind(error) == VwishToastKind.error);
+    final playing = !isError && (status == PlaybackStatus.playing || status == PlaybackStatus.buffering);
+    final progress = (!isError && duration > 0) ? position / duration : 0.0;
     final subtitle = switch (status) {
+      _ when isError => error != null ? playerErrorMessage(error) : "Couldn't play this video",
       PlaybackStatus.loading => 'Loading…',
-      PlaybackStatus.error => "Couldn't play this video",
       _ when duration > 0 =>
         '${formatClock(Duration(seconds: position))} / ${formatClock(Duration(seconds: duration))}',
       _ => mediaHost(media) ?? 'Ready to play',
@@ -535,7 +537,9 @@ class _NowPlayingCard extends ConsumerWidget {
       child: VwishPressable(
         onTap: onOpen,
         borderRadius: VwishRadius.lgAll,
-        semanticLabel: 'Now playing: ${media.title}. Open player',
+        semanticLabel: isError
+            ? 'Playback error: ${media.title}. Open player'
+            : 'Now playing: ${media.title}. Open player',
         child: VwishSurface(
           shadow: VwishShadow.subtle,
           padding: const EdgeInsetsDirectional.fromSTEB(12, 12, 10, 12),
@@ -546,8 +550,10 @@ class _NowPlayingCard extends ConsumerWidget {
               Row(
                 children: [
                   VwishTileIcon(
-                    playing ? Icons.graphic_eq_rounded : mediaIcon(media),
-                    color: VwishColors.primaryLight,
+                    isError
+                        ? Icons.error_outline_rounded
+                        : (playing ? Icons.graphic_eq_rounded : mediaIcon(media)),
+                    color: isError ? VwishColors.errorLight : VwishColors.primaryLight,
                     size: 44,
                   ),
                   const SizedBox(width: VwishSpacing.md),
@@ -557,11 +563,11 @@ class _NowPlayingCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'NOW PLAYING',
+                          isError ? 'COULD NOT PLAY' : 'NOW PLAYING',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: VwishTextStyles.micro.copyWith(
-                            color: VwishColors.primaryLight,
+                            color: isError ? VwishColors.errorLight : VwishColors.primaryLight,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.8,
                           ),
@@ -578,22 +584,41 @@ class _NowPlayingCard extends ConsumerWidget {
                           subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: VwishTextStyles.caption,
+                          style: VwishTextStyles.caption.copyWith(
+                            color: isError ? VwishColors.errorLight : null,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: VwishSpacing.sm),
+                  const SizedBox(width: VwishSpacing.xs),
+                  if (isError)
+                    VwishIconButton(
+                      icon: Icons.refresh_rounded,
+                      variant: VwishIconButtonVariant.tonal,
+                      size: 40,
+                      tooltip: 'Retry',
+                      onPressed: () => ref.read(playerControllerProvider.notifier).openMedia(media),
+                    )
+                  else
+                    VwishIconButton(
+                      icon: playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      variant: VwishIconButtonVariant.primary,
+                      size: 40,
+                      tooltip: playing ? 'Pause' : 'Play',
+                      onPressed: () => ref.read(playerControllerProvider.notifier).togglePlay(),
+                    ),
+                  const SizedBox(width: 4),
                   VwishIconButton(
-                    icon: playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    variant: VwishIconButtonVariant.primary,
-                    size: 44,
-                    tooltip: playing ? 'Pause' : 'Play',
-                    onPressed: () => ref.read(playerControllerProvider.notifier).togglePlay(),
+                    icon: Icons.close_rounded,
+                    variant: VwishIconButtonVariant.plain,
+                    size: 40,
+                    tooltip: 'Clear',
+                    onPressed: () => ref.read(queueControllerProvider.notifier).clear(),
                   ),
                 ],
               ),
-              if (progress > 0) ...[
+              if (!isError && progress > 0) ...[
                 const SizedBox(height: VwishSpacing.md),
                 VwishProgressLine(progress: progress),
               ],

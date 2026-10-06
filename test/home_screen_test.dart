@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vwish_data/vwish_data.dart';
 import 'package:vwish_domain/vwish_domain.dart';
+import 'package:vwish_engine/vwish_engine.dart';
 import 'package:vwish_features/vwish_features.dart';
 import 'package:vwish_ui_kit/vwish_ui_kit.dart';
 
@@ -673,6 +674,47 @@ void main() {
       expect(items, hasLength(5));
       expect(items.last.isRemote, isTrue);
       expect(find.text('Added to Mix'), findsOneWidget);
+      await _finish(tester, env);
+    });
+
+    testWidgets('Now Playing card displays error state on failure and clear button dismisses card', (tester) async {
+      final env = await LibraryTestEnv.create();
+      final engine = FakePlaybackEngine();
+      await engine.initialize();
+      final item = remoteRef('https://example.com/stream.m3u8');
+
+      await tester.pumpWidget(libraryTestApp(
+        env,
+        VwishHomeScreen(onOpenPlayer: () {}, onOpenFolder: (_) {}, onOpenPlaylist: (_) {}),
+        overrides: [
+          playbackEngineProvider.overrideWithValue(engine),
+        ],
+      ));
+      await pumpFrames(tester);
+
+      final container = ProviderScope.containerOf(tester.element(find.byType(VwishHomeScreen)));
+      await container.read(queueControllerProvider.notifier).playFrom([item]);
+      await pumpFrames(tester);
+
+      expect(find.text('NOW PLAYING'), findsOneWidget);
+      expect(find.byTooltip('Clear'), findsOneWidget);
+
+      // Simulate player error
+      engine.emitMockError(const UnsupportedFormat('stream.m3u8', details: 'Unrecognized'));
+      await pumpFrames(tester);
+
+      expect(find.text('COULD NOT PLAY'), findsOneWidget);
+      expect(find.byTooltip('Retry'), findsOneWidget);
+      expect(find.byIcon(Icons.error_outline_rounded), findsWidgets);
+
+      // Tap Clear to dismiss
+      await tester.tap(find.byTooltip('Clear'));
+      await pumpFrames(tester);
+
+      expect(find.text('COULD NOT PLAY'), findsNothing);
+      expect(find.text('NOW PLAYING'), findsNothing);
+
+      await engine.dispose();
       await _finish(tester, env);
     });
   });

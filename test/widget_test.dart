@@ -88,6 +88,14 @@ void main() {
     expect(find.text('example.com'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
+    // Tapping Clear dismisses the Now Playing banner
+    final clearBtn = find.byTooltip('Clear');
+    expect(clearBtn, findsOneWidget);
+    await tester.tap(clearBtn);
+    await pumpFrames(tester, count: 5);
+    expect(find.text('NOW PLAYING'), findsNothing);
+    expect(tester.takeException(), isNull);
+
     await _tearDown(tester, engine);
   });
 }
