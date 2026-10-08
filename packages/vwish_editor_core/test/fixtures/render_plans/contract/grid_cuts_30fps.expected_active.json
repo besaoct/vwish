@@ -1,0 +1,666 @@
+{
+ "plan": "grid_cuts_30fps.json",
+ "fps": 30,
+ "frames": [
+  {
+   "k": 0,
+   "timeOfFrame": 0,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 1,
+   "timeOfFrame": 33334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 2,
+   "timeOfFrame": 66667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 3,
+   "timeOfFrame": 100000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 4,
+   "timeOfFrame": 133334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 5,
+   "timeOfFrame": 166667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 6,
+   "timeOfFrame": 200000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 7,
+   "timeOfFrame": 233334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 8,
+   "timeOfFrame": 266667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 9,
+   "timeOfFrame": 300000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 10,
+   "timeOfFrame": 333334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 11,
+   "timeOfFrame": 366667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 12,
+   "timeOfFrame": 400000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 13,
+   "timeOfFrame": 433334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 14,
+   "timeOfFrame": 466667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 15,
+   "timeOfFrame": 500000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 16,
+   "timeOfFrame": 533334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 17,
+   "timeOfFrame": 566667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 18,
+   "timeOfFrame": 600000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 19,
+   "timeOfFrame": 633334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 20,
+   "timeOfFrame": 666667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 21,
+   "timeOfFrame": 700000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 22,
+   "timeOfFrame": 733334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 23,
+   "timeOfFrame": 766667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 24,
+   "timeOfFrame": 800000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 25,
+   "timeOfFrame": 833334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 26,
+   "timeOfFrame": 866667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 27,
+   "timeOfFrame": 900000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 28,
+   "timeOfFrame": 933334,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 29,
+   "timeOfFrame": 966667,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 30,
+   "timeOfFrame": 1000000,
+   "active": [
+    "it_gridA0000001#v"
+   ]
+  },
+  {
+   "k": 31,
+   "timeOfFrame": 1033334,
+   "active": [
+    "it_gridB0000001#v"
+   ]
+  },
+  {
+   "k": 32,
+   "timeOfFrame": 1066667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 33,
+   "timeOfFrame": 1100000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 34,
+   "timeOfFrame": 1133334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 35,
+   "timeOfFrame": 1166667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 36,
+   "timeOfFrame": 1200000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 37,
+   "timeOfFrame": 1233334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 38,
+   "timeOfFrame": 1266667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 39,
+   "timeOfFrame": 1300000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 40,
+   "timeOfFrame": 1333334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 41,
+   "timeOfFrame": 1366667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 42,
+   "timeOfFrame": 1400000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 43,
+   "timeOfFrame": 1433334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 44,
+   "timeOfFrame": 1466667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 45,
+   "timeOfFrame": 1500000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 46,
+   "timeOfFrame": 1533334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 47,
+   "timeOfFrame": 1566667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 48,
+   "timeOfFrame": 1600000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 49,
+   "timeOfFrame": 1633334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 50,
+   "timeOfFrame": 1666667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 51,
+   "timeOfFrame": 1700000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 52,
+   "timeOfFrame": 1733334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 53,
+   "timeOfFrame": 1766667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 54,
+   "timeOfFrame": 1800000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 55,
+   "timeOfFrame": 1833334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 56,
+   "timeOfFrame": 1866667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 57,
+   "timeOfFrame": 1900000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 58,
+   "timeOfFrame": 1933334,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 59,
+   "timeOfFrame": 1966667,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 60,
+   "timeOfFrame": 2000000,
+   "active": [
+    "it_gridB0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 61,
+   "timeOfFrame": 2033334,
+   "active": [
+    "it_gridC0000001#v",
+    "it_gridD0000001#v"
+   ]
+  },
+  {
+   "k": 62,
+   "timeOfFrame": 2066667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 63,
+   "timeOfFrame": 2100000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 64,
+   "timeOfFrame": 2133334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 65,
+   "timeOfFrame": 2166667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 66,
+   "timeOfFrame": 2200000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 67,
+   "timeOfFrame": 2233334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 68,
+   "timeOfFrame": 2266667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 69,
+   "timeOfFrame": 2300000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 70,
+   "timeOfFrame": 2333334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 71,
+   "timeOfFrame": 2366667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 72,
+   "timeOfFrame": 2400000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 73,
+   "timeOfFrame": 2433334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 74,
+   "timeOfFrame": 2466667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 75,
+   "timeOfFrame": 2500000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 76,
+   "timeOfFrame": 2533334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 77,
+   "timeOfFrame": 2566667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 78,
+   "timeOfFrame": 2600000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 79,
+   "timeOfFrame": 2633334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 80,
+   "timeOfFrame": 2666667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 81,
+   "timeOfFrame": 2700000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 82,
+   "timeOfFrame": 2733334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 83,
+   "timeOfFrame": 2766667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 84,
+   "timeOfFrame": 2800000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 85,
+   "timeOfFrame": 2833334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 86,
+   "timeOfFrame": 2866667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 87,
+   "timeOfFrame": 2900000,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 88,
+   "timeOfFrame": 2933334,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  },
+  {
+   "k": 89,
+   "timeOfFrame": 2966667,
+   "active": [
+    "it_gridC0000001#v"
+   ]
+  }
+ ]
+}
