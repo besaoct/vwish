@@ -724,8 +724,7 @@ abstract final class ReferenceVectors {
         {'cmask': _cmaskJson(m), 'x': x, 'y': y, 'alpha': r9(RenderMath.canvasMaskAlpha(m, x, y))},
     ];
     final bytes = [
-      for (final v in const [0.0, 0.002, 0.25, 0.498, 0.5, 0.998, 1.0, -0.2, 1.3])
-        {'v': r9(v), 'byte': RenderMath.toByte(v)},
+      for (final v in const [0.0, 0.002, 0.25, 0.498, 0.5, 0.998, 1.0, -0.2, 1.3]) {'v': r9(v), 'byte': RenderMath.toByte(v)},
     ];
     return {
       ..._header(

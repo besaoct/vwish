@@ -794,18 +794,20 @@ PlanTransform planTransformOf(Transform2D transform, VisualLoweringContext ctx, 
   );
 }
 
-/// The plan `base` of a picture of [picture] px under [fit] and [crop] ([baseSize] on the project
-/// canvas, then mapped); the whole canvas when the picture size is unknown or the crop is empty.
+/// The plan `base` of a picture of [picture] px under [fit] and [crop]: [baseSize] into the
+/// project canvas as it sits on the plan canvas (the project canvas itself for the identity
+/// mapping; `baseSize` is homogeneous in the canvas size, and fitting into the mapped canvas keeps
+/// the constrained side exact). The whole (mapped) canvas when the picture size is unknown or the
+/// crop is empty.
 PlanSize planBaseOf(Size2? picture, FitMode fit, CropRect crop, VisualLoweringContext ctx) {
-  final canvas = ctx.projectCanvas;
+  final canvas = ctx.mapping.size(ctx.projectCanvas);
   final Size2 base;
   if (picture == null || !picture.isPositive || !(crop.right > crop.left && crop.bottom > crop.top)) {
     base = canvas;
   } else {
     base = baseSize(fit: fit, crop: crop, source: picture, canvas: canvas);
   }
-  final b = ctx.mapping.size(base);
-  return PlanSize(b.width, b.height);
+  return PlanSize(base.width, base.height);
 }
 
 /// The effect set of [visual] (D-08 order is the engines'): an `adj` or `detail` block when any

@@ -103,9 +103,10 @@ final class ProjectDecodeResult {
 abstract final class AppContainerPaths {
   static const String _uuid = '[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}';
 
-  // Device (`/var/mobile/…`, `/private/var/mobile/…`) and simulator containers; data and bundle.
-  static final RegExp _iosRoot = RegExp('^(.*?/Containers/(?:Data|Bundle)/Application/$_uuid)(/.*)?\$');
-  static final RegExp _iosAnywhere = RegExp('/Containers/(?:Data|Bundle)/Application/$_uuid(?:/|\$)');
+  // Device data (`/var/mobile/Containers/Data/…`, also under `/private`), device bundles
+  // (`/var/containers/Bundle/…`) and simulator containers.
+  static final RegExp _iosRoot = RegExp('^(.*?/[Cc]ontainers/(?:Data|Bundle)/Application/$_uuid)(/.*)?\$');
+  static final RegExp _iosAnywhere = RegExp('/[Cc]ontainers/(?:Data|Bundle)/Application/$_uuid(?:/|\$)');
 
   // `/data/user/<n>/<pkg>`, `/data/user_de/<n>/<pkg>`, `/data/data/<pkg>`.
   static const String _pkg = r'[A-Za-z][A-Za-z0-9_]*(?:\.[A-Za-z0-9_]+)+';

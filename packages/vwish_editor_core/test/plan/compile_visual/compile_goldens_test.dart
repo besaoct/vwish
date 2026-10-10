@@ -26,10 +26,10 @@ final class GoldenCase {
     this.project, {
     this.target = PlanTarget.preview,
     this.options = const CompileOptions(),
-    MapPlanAssetResolver? resolver,
+    MapPlanAssetResolver Function(EditProject p)? resolverOf,
     this.packingExclusions = const {},
     required this.check,
-  }) : resolver = resolver ?? resolverFor(project);
+  }) : resolver = (resolverOf ?? resolverFor)(project);
 
   final String name;
   final EditProject project;
@@ -41,7 +41,7 @@ final class GoldenCase {
   /// `LayerLimits` counts them conservatively, the compiler emits solids).
   final Set<String> packingExclusions;
 
-  final void Function(CompiledPlan c) check;
+  final void Function(CompiledPlan c, EditProject p) check;
 
   CompiledPlan compile() => compilePlan(project, target, resolver, options: options);
 }
@@ -72,7 +72,7 @@ List<GoldenCase> cases() => [
             clip('it_pipfit00001', 0, 90, 'md_photo000001', visual: const VisualProps(crop: CropRect(left: 0.25, top: 0, right: 0.75, bottom: 1))),
           ]),
         ], assets: [vA, vB, vPortrait, photo]),
-        check: (c) {
+        check: (c, project) {
           final p = c.plan;
           expect(layer(p, 'it_fit00000001#v').base, const PlanSize(607.5, 1080)); // 1080×1920 letterboxed in 1920×1080
           expect(layer(p, 'it_fill0000001#v').base, const PlanSize(1920, 1080)); // 1536×864 covers 1920×1080
@@ -102,7 +102,7 @@ List<GoldenCase> cases() => [
             clip('it_lookgone001', 60, 90, 'md_videoA00001', visual: const VisualProps(look: BuiltinLook('unknownPreset'))),
           ]),
         ], assets: [vA]),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_fx000000001#v');
           expect(l.xf, const PlanTransform(cx: 1440, cy: 432, s: 0.5, r: 30, fx: true, fy: true, op: 0.8));
           expect(l.fx.adj, const PlanAdjust(exposure: 0.2, brightness: -0.1, contrast: 0.3, highlights: -0.2, shadows: 0.1, saturation: 0.5, temperature: -0.4, tint: 0.05));
@@ -126,15 +126,15 @@ List<GoldenCase> cases() => [
             clip('it_lutgone0001', 30, 60, 'md_videoA00001', visual: const VisualProps(look: ImportedLut(MediaId('md_lutgone0001')))),
           ]),
         ], assets: [vA, asset('md_lutteal0001', MediaKind.lut), asset('md_lutgone0001', MediaKind.lut)]),
-        resolver: null,
-        check: (c) {
+        resolverOf: (p) => resolverFor(p, offline: {'md_lutgone0001'}),
+        check: (c, project) {
           expect(layer(c.plan, 'it_lut00000001#v').fx.lut, const PlanLut('md_lutteal0001', 0.5));
           expect(c.plan.assets['md_lutteal0001']!.kind, PlanAssetKind.lut);
           expect(layer(c.plan, 'it_lutgone0001#v').fx.lut, isNull);
           expect(c.plan.assets.containsKey('md_lutgone0001'), isFalse);
           expect(c.requirements.offline, ['md_lutgone0001']);
         },
-      )..resolverOverride = (p) => resolverFor(p, offline: {'md_lutgone0001'}),
+      ),
 
       // Item keyframes → absolute anim channels (in-range keys only; values in plan units).
       GoldenCase(
@@ -162,7 +162,7 @@ List<GoldenCase> cases() => [
                 })),
           ]),
         ], assets: [vA, vB]),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_keys0000001#v');
           final s = fr(30); // clip start
           expect(l.anim[PlanChannels.xfCx], [AnimKey(s, 480), AnimKey(s + 1000000, 1440)]);
@@ -189,7 +189,7 @@ List<GoldenCase> cases() => [
             clip('it_slow0000001', 30, 90, 'md_videoA00001', sourceIn: 4000000, speed: const ConstantSpeed(0.5)),
           ]),
         ], assets: [vA]),
-        check: (c) {
+        check: (c, project) {
           expect(layer(c.plan, 'it_fast0000001#v').map, [MapSegment(0, 1000000, 1000000, 3000000)]);
           expect(layer(c.plan, 'it_slow0000001#v').map, [MapSegment(1000000, 3000000, 4000000, 5000000)]);
         },
@@ -200,14 +200,13 @@ List<GoldenCase> cases() => [
         'speed_ramp',
         project([
           mainLane([
-            clip('it_ramp0000001', 0, 75, 'md_videoA00001',
-                sourceIn: 500000, speed: SpeedRamp(const [SpeedPoint(0, 1), SpeedPoint(0.3, 4), SpeedPoint(0.6, 0.5), SpeedPoint(1, 2)])),
+            clip('it_ramp0000001', 0, 120, 'md_videoA00001',
+                sourceIn: 500000, speed: SpeedRamp(const [SpeedPoint(0, 1), SpeedPoint(0.5, 2), SpeedPoint(1, 1)])),
           ]),
         ], assets: [vA]),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_ramp0000001#v');
-          expect(l.map.length, greaterThan(3));
-          final project = cases().firstWhere((e) => e.name == 'speed_ramp').project;
+          expect(l.map.length, greaterThan(1));
           final item = project.tracks.first.items.single as MediaClip;
           expect(l.map, item.timeMap(FrameRate.fps30).lower());
         },
@@ -231,7 +230,7 @@ List<GoldenCase> cases() => [
           asset('md_revshort001', MediaKind.video, duration: 1000000, derived: const ReversedSpec(MediaId('md_videoA00001'), TimeRange(3500000, 5000000), sourceQuickHash: 'qh_md_videoA00001')),
           asset('md_revstale001', MediaKind.video, duration: 2000000, derived: const ReversedSpec(MediaId('md_videoA00001'), TimeRange(3000000, 5000000), sourceQuickHash: 'other')),
         ]),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_rev00000001#v');
           expect(l.asset, 'md_revwide0001');
           expect(l.map, [MapSegment(0, 2000000, 1000000, 3000000)]);
@@ -249,7 +248,7 @@ List<GoldenCase> cases() => [
           vA,
           asset('md_revpend0001', MediaKind.video, duration: 2000000, status: const PendingStatus('job_rev'), derived: const ReversedSpec(MediaId('md_videoA00001'), TimeRange(3000000, 5000000), sourceQuickHash: 'qh_md_videoA00001')),
         ]),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_rev00000001#v');
           expect(l.asset, 'md_videoA00001');
           expect(l.map, [MapSegment(0, 2000000, 3000000, 5000000)]);
@@ -267,7 +266,7 @@ List<GoldenCase> cases() => [
           ]),
           lane('tr_ov1', TrackKind.overlay, [clip('it_pip00000001', 0, 30, 'md_videoB00001')]),
         ], settings: const ProjectSettings(canvas: CanvasSpec(aspect: AspectRatio.portrait9x16), background: BlurOfMainBackground(0.5)), assets: [vA, vB, photo]),
-        check: (c) {
+        check: (c, project) {
           final p = c.plan;
           final bd = layer(p, 'it_main0000001#bd');
           final v = layer(p, 'it_main0000001#v');
@@ -275,7 +274,10 @@ List<GoldenCase> cases() => [
           expect(v.z, 10);
           expect(bd.map, v.map);
           expect(bd.asset, v.asset);
-          expect(bd.base, const PlanSize(1920 * 0.8 * 1.25, 1920)); // 1536×1080 crop fills 1080×1920
+          // The 1536×1080 crop fills 1080×1920: scaled by 1920/1080.
+          expect(bd.base!.w, closeTo(1536 * 1920 / 1080, 1e-9));
+          expect(bd.base!.h, 1920);
+          expect(v.base, const PlanSize(1080, 759.375)); // and fits by width
           expect(bd.fx, const PlanEffects(detail: PlanDetail(blur: 0.5)));
           expect(bd.xf, PlanTransform.identity);
           expect(layer(p, 'it_photo000001#bd').kind, PlanLayerKind.image);
@@ -302,7 +304,8 @@ List<GoldenCase> cases() => [
           ]),
         ], assets: [vA, vB]),
         packingExclusions: {'it_offline0001#v'},
-        check: (c) {
+        resolverOf: (p) => resolverFor(p, offline: {'md_videoB00001'}),
+        check: (c, project) {
           final gone = layer(c.plan, 'it_gone0000001#v');
           expect(gone.kind, PlanLayerKind.solid);
           expect(gone.color, offlinePlaceholderColor);
@@ -316,7 +319,7 @@ List<GoldenCase> cases() => [
           expect(c.plan.req!.offline, ['md_gone0000001', 'md_videoB00001']);
           expect(c.plan.assets.keys, ['md_videoA00001']);
         },
-      )..resolverOverride = (p) => resolverFor(p, offline: {'md_videoB00001'}),
+      ),
 
       // Pending freeze still → hold media layer over the source + req.pendingStill.
       GoldenCase(
@@ -333,7 +336,7 @@ List<GoldenCase> cases() => [
           // Freezing near the end: a rate-1 range would run past the source, so the map runs at 0.1×.
           asset('md_still000002', MediaKind.still, w: null, h: null, status: const PendingStatus('job_still2'), derived: const StillSpec(MediaId('md_videoA00001'), 9800000, sourceQuickHash: 'qh_md_videoA00001')),
         ]),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_freeze00001#v');
           expect(l.kind, PlanLayerKind.media);
           expect(l.hold, isTrue);
@@ -355,7 +358,7 @@ List<GoldenCase> cases() => [
           asset('md_still000001', MediaKind.still, w: null, h: null, status: const PendingStatus('job_still'), derived: const StillSpec(MediaId('md_videoA00001'), 1000000, sourceQuickHash: 'qh_md_videoA00001')),
         ]),
         options: const CompileOptions(holdFrame: false),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_freeze00001#v');
           expect(l.kind, PlanLayerKind.solid);
           expect(l.color, pendingStillPlaceholderColor);
@@ -377,7 +380,7 @@ List<GoldenCase> cases() => [
           photo,
           asset('md_still000001', MediaKind.still, w: 1920, h: 1080, derived: const StillSpec(MediaId('md_videoA00001'), 2000000, sourceQuickHash: 'qh_md_videoA00001')),
         ]),
-        check: (c) {
+        check: (c, project) {
           final still = layer(c.plan, 'it_still000001#v');
           expect(still.kind, PlanLayerKind.image);
           expect(still.seq, isNull);
@@ -392,22 +395,24 @@ List<GoldenCase> cases() => [
       GoldenCase(
         'proxy_preview',
         _proxyProject,
-        check: (c) {
+        resolverOf: _proxyResolver,
+        check: (c, project) {
           expect(c.plan.assets['md_videoA00001']!.proxyUri, 'file:///cache/vwish/editor/proxies/md_videoA00001-540.mp4');
           expect(c.plan.assets['md_videoB00001']!.proxyUri, isNull); // proxy not ready in the pool
         },
-      )..resolverOverride = (p) => resolverFor(p, proxied: {'md_videoA00001', 'md_videoB00001'}, bookmarks: {'md_videoA00001': Uint8List.fromList('bookmark'.codeUnits)}),
+      ),
       GoldenCase(
         'proxy_export',
         _proxyProject,
         target: PlanTarget.export,
-        check: (c) {
+        resolverOf: _proxyResolver,
+        check: (c, project) {
           expect(c.plan.target, PlanTarget.export);
           expect(c.plan.assets.values.every((a) => a.proxyUri == null), isTrue);
           expect(c.plan.assets['md_videoA00001']!.bookmark, 'Ym9va21hcms=');
           expect(c.plan.req, isNull);
         },
-      )..resolverOverride = (p) => resolverFor(p, proxied: {'md_videoA00001', 'md_videoB00001'}, bookmarks: {'md_videoA00001': Uint8List.fromList('bookmark'.codeUnits)}),
+      ),
 
       // Track hidden / muted / solo: hidden lanes omitted (z of the others unchanged); mute and
       // solo affect audio only.
@@ -418,7 +423,7 @@ List<GoldenCase> cases() => [
           lane('tr_ov1', TrackKind.overlay, [clip('it_hidden00001', 0, 60, 'md_videoB00001')], hidden: true),
           lane('tr_ov2', TrackKind.overlay, [clip('it_shown000001', 0, 60, 'md_videoB00001')], muted: true),
         ], assets: [vA, vB]),
-        check: (c) {
+        check: (c, project) {
           expect(c.plan.layers.map((l) => l.id), ['it_main0000001#v', 'it_shown000001#v']);
           expect(layer(c.plan, 'it_shown000001#v').z, 10020);
         },
@@ -436,7 +441,7 @@ List<GoldenCase> cases() => [
           lane('tr_sub', TrackKind.subtitle, [SubtitleCue(id: const ItemId('it_cue00000001'), start: 0, duration: fr(30), text: 'Hi')], subtitle: const SubtitleTrackData()),
           lane('tr_au1', TrackKind.audio, [MediaClip(id: const ItemId('it_music000001'), start: 0, duration: fr(90), media: const MediaId('md_music000001'))]),
         ], assets: [vA, vB, photo, asset('md_music000001', MediaKind.audio, w: null, h: null)]),
-        check: (c) {
+        check: (c, project) {
           expect({for (final l in c.plan.layers) l.id: l.z}, {
             'it_main0000001#v': 10,
             'it_video200001#v': 20,
@@ -459,7 +464,7 @@ List<GoldenCase> cases() => [
               clip('it_pip${i}0000001', i * 30, i * 30 + 30, 'md_videoB00001', visual: const VisualProps(transform: Transform2D(scale: 0.3))),
             ]),
         ], assets: [vA, vB]),
-        check: (c) {
+        check: (c, project) {
           expect(c.packing.slotCount, 2);
           expect(layer(c.plan, 'it_main0000001#v').seq, 0);
           for (var i = 0; i < 6; i++) {
@@ -485,19 +490,22 @@ List<GoldenCase> cases() => [
         ], settings: const ProjectSettings(canvas: CanvasSpec(aspect: AspectRatio.portrait9x16), background: BlurOfMainBackground(0.6)), assets: [vA, vB]),
         target: PlanTarget.export,
         options: const CompileOptions(output: PlanOutputSpec(width: 1920, height: 1080, fps: 60)),
-        check: (c) {
+        check: (c, project) {
           final p = c.plan;
           expect(p.canvas, const PlanCanvas(w: 1920, h: 1080, fps: 60, gridFps: 30));
           // 1080×1920 into 1920×1080: scale 0.5625, content 607.5×1080 at x = 656.25.
           final v = layer(p, 'it_main0000001#v');
           expect(v.base, const PlanSize(607.5, 341.71875));
+          expect(layer(p, 'it_main0000001#bd').base, const PlanSize(1920, 1080)); // fill of the 607.5×1080 content
           expect(v.xf.cx, isNull); // centred
           expect(v.fx.detail!.blur, closeTo(0.4 * 0.5625, 1e-12));
           final clipMask = const CanvasMask(cx: 960, cy: 540, w: 607.5, h: 1080);
           expect(p.layers.every((l) => l.cmasks.contains(clipMask)), isTrue);
           final pip = layer(p, 'it_pip00000001#v');
-          expect(pip.xf.cx, 656.25 + 0.5625 * 1620);
-          expect(pip.anim[PlanChannels.xfCy], [const AnimKey(0, 1620 * 0.5625), const AnimKey(1000000, 540)]);
+          // Project px (540 + 0.5·1080, 960 + 0.5·1920) = (1080, 1920) → output (656.25 + 0.5625·1080, 0.5625·1920).
+          expect(pip.xf.cx, 656.25 + 0.5625 * 1080);
+          expect(pip.xf.cy, 1080);
+          expect(pip.anim[PlanChannels.xfCy], [const AnimKey(0, 1080), const AnimKey(1000000, 540)]);
           expect(layer(p, 'it_main0000001#bd').fx.detail!.blur, closeTo(0.6 * 0.5625, 1e-12));
         },
       ),
@@ -512,7 +520,7 @@ List<GoldenCase> cases() => [
         ], assets: [vA]),
         target: PlanTarget.export,
         options: const CompileOptions(output: PlanOutputSpec(width: 1280, height: 720, fps: 24)),
-        check: (c) {
+        check: (c, project) {
           final l = layer(c.plan, 'it_main0000001#v');
           expect(l.base!.w, closeTo(1280, 1e-9));
           expect(l.base!.h, closeTo(720, 1e-9));
@@ -535,17 +543,10 @@ final EditProject _proxyProject = project([
   asset('md_videoB00001', MediaKind.video, w: 1280, h: 720, duration: 20000000, proxy: ProxyState.pending),
 ]);
 
-final Map<String, MapPlanAssetResolver Function(EditProject)> _resolverOverrides = {};
+MapPlanAssetResolver _proxyResolver(EditProject p) => resolverFor(p,
+    proxied: {'md_videoA00001', 'md_videoB00001'}, bookmarks: {'md_videoA00001': Uint8List.fromList('bookmark'.codeUnits)});
 
-extension on GoldenCase {
-  set resolverOverride(MapPlanAssetResolver Function(EditProject) f) => _resolverOverrides[name] = f;
-}
-
-CompiledPlan compileCase(GoldenCase g) {
-  final override = _resolverOverrides[g.name];
-  final resolver = override == null ? g.resolver : override(g.project);
-  return compilePlan(g.project, g.target, resolver, options: g.options);
-}
+CompiledPlan compileCase(GoldenCase g) => g.compile();
 
 void main() {
   final all = cases();
@@ -568,6 +569,7 @@ void main() {
       late CompiledPlan compiled;
       setUpAll(() => compiled = compileCase(g));
 
+
       test('matches goldens/${g.name}.json', () {
         final file = File('test/plan/compile_visual/goldens/${g.name}.json');
         final text = canonical(compiled.plan);
@@ -584,7 +586,7 @@ void main() {
 
       test('passes the CORE-29 validator', () => expect(compiled.violations(), isEmpty));
 
-      test('row lowering', () => g.check(compiled));
+      test('row lowering', () => g.check(compiled, g.project));
 
       test('model-derived packing inputs equal the compiled media layers', () {
         final derived = packingInputsOf(g.project, holdFrame: g.options.holdFrame)

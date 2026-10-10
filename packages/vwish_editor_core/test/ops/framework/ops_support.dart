@@ -409,7 +409,7 @@ final class GoldenFile {
     String? name;
     final buf = StringBuffer();
     void flush() {
-      if (name != null) out[name!] = buf.toString();
+      if (name != null) out[name] = buf.toString();
       buf.clear();
     }
 

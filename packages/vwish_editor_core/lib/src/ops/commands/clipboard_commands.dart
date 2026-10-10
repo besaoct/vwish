@@ -158,8 +158,10 @@ final class PasteItems extends EditCommand {
       final l = newIds[tr.left];
       final r = newIds[tr.right];
       if (l == null || r == null) continue;
+      // Same length in time on another grid (the framework re-clamps it to the clips' limits).
+      final n = sameRate ? tr.durationFrames : (tr.durationFrames * d.rate.fps / payload.rate.fps).round();
       (transitions[ct.lane] ??= <Transition>[]).add(
-        Transition(id: d.ids.transitionId(), left: l, right: r, kind: tr.kind, durationFrames: tr.durationFrames, direction: tr.direction),
+        Transition(id: d.ids.transitionId(), left: l, right: r, kind: tr.kind, durationFrames: n < 1 ? 1 : n, direction: tr.direction),
       );
     }
 

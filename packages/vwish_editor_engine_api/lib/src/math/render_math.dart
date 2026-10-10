@@ -511,4 +511,9 @@ abstract final class RenderMath {
 
   /// An 8-bit channel value: `round(clamp(v, 0, 1)·255)`.
   static int toByte(double v) => (clamp01(v) * 255).round();
+
+  /// Transitional: the D-33 placeholder getter, kept only so API-01's placeholder test
+  /// (`test/contract/fake_engine_behavior_test.dart`) still compiles until its owner drops the
+  /// RenderMath / ReferenceRenderer / ReferenceAudioMixer lines. Always throws.
+  static Never get notImplemented => throw UnimplementedError('RenderMath is implemented (API-03); remove this placeholder check');
 }

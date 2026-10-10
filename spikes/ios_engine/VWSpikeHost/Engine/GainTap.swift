@@ -173,9 +173,17 @@ struct AudioCompositionSpec {
     return (comp, mix)
   }
 
+  struct MixRead {
+    var left: [Float]
+    var status: AVAssetReader.Status
+    var error: Error?
+  }
+
   /// Reads the mixed composition through AVAssetReaderAudioMixOutput as interleaved Float32
-  /// 48 kHz stereo and returns the left-channel samples.
-  static func readMix(_ comp: AVComposition, mix: AVAudioMix) throws -> [Float] {
+  /// 48 kHz stereo and returns the left-channel samples with the reader's final status.
+  static func readMix(
+    _ comp: AVComposition, mix: AVAudioMix, algorithm: AVAudioTimePitchAlgorithm = .spectral
+  ) throws -> MixRead {
     let reader = try AVAssetReader(asset: comp)
     let output = AVAssetReaderAudioMixOutput(
       audioTracks: comp.tracks(withMediaType: .audio),
@@ -189,7 +197,7 @@ struct AudioCompositionSpec {
         AVLinearPCMIsBigEndianKey: false,
       ])
     output.audioMix = mix
-    output.audioTimePitchAlgorithm = .spectral
+    output.audioTimePitchAlgorithm = algorithm
     reader.add(output)
     reader.startReading()
     var left: [Float] = []
@@ -206,7 +214,15 @@ struct AudioCompositionSpec {
         i += 2
       }
     }
-    return left
+    return MixRead(left: left, status: reader.status, error: reader.error)
+  }
+
+  /// RMS level (dB) of `x[a s, b s)` at 48 kHz; nil when the range is not inside `x`.
+  static func rmsDb(_ x: [Float], _ a: Double, _ b: Double) -> Double? {
+    let i = Int(a * 48_000)
+    let j = Int(b * 48_000)
+    guard i >= 0, j <= x.count, i < j else { return nil }
+    return rmsDb(x[i..<j])
   }
 
   static func rmsDb(_ x: ArraySlice<Float>) -> Double {

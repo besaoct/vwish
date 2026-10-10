@@ -1,6 +1,11 @@
 // OWNER: AI-12
 //
-// Placeholder (D-33) created by AI-08's scaffold. AI-12 replaces this sub-barrel. Will declare:
-// Timeline planner, word mapping through ClipTimeMap.timelineTimeOf, overlap merge by priority.
+// Timeline planner, word mapping through `ClipTimeMap.timelineTimeOf` and the overlap merge by
+// priority (ai.md §10.1), plus `DomainTimelineView` over `EditProject`.
 
 library;
+
+export 'domain_timeline_view.dart';
+export 'transcription_planner.dart';
+export 'transcription_unit.dart';
+export 'word_mapper.dart';
