@@ -70,6 +70,34 @@ void main() {
     }
   });
 
+  test('committed vectors cover the required k set and every expectation is k (read by Swift and Kotlin)', () {
+    final doc = jsonDecode(File('test/fixtures/vectors/frame_grid.json').readAsStringSync()) as Map<String, Object?>;
+    final list = (doc['rates']! as List<Object?>).cast<Map<String, Object?>>();
+    expect(list.map((r) => r['fps']), rates);
+    expect(doc.containsKey('androidSeekMsRounding'), isTrue, reason: 'placeholder filled by ENG-06 from AND-01');
+    for (final r in list) {
+      final fps = r['fps']! as int;
+      final frames = (r['frames']! as List<Object?>).cast<Map<String, Object?>>();
+      final ks = frames.map((f) => f['k']! as int).toSet();
+      final hour = 3600 * fps;
+      expect(ks, {0, 1, 2, 3, fps - 1, fps, fps + 1, fps + 2, 1000, hour, hour + 1, hour + 2, 24 * hour - 1});
+      expect({for (final k in ks) k % 3}, {0, 1, 2});
+      for (final f in frames) {
+        final k = f['k']! as int;
+        final nearest = f['nearest']! as Map<String, Object?>;
+        expect(nearest.values, everyElement(k), reason: '$fps fps k=$k');
+        expect(f['nearestAtPlatformPlusHalf'], k);
+        expect(f['nearestAtPlatformMinusHalf'], k);
+        expect(f['rational'], [k, fps]);
+        final fi = f['frameIndexOf']! as Map<String, Object?>;
+        expect(fi['t'], k);
+        expect(fi['tMinus1'], k - 1);
+        expect(fi['tPlus1'], k);
+        expect(f['platformTime'], FrameRate(fps, 1).platformTimeOfFrame(k));
+      }
+    }
+  });
+
   test('committed frame_grid.json is up to date', () {
     final committed = jsonDecode(File('test/fixtures/vectors/frame_grid.json').readAsStringSync()) as Map<String, Object?>;
     final fresh = jsonDecode(jsonEncode(gen.buildVectors(androidSeekMsRounding: committed['androidSeekMsRounding'])));

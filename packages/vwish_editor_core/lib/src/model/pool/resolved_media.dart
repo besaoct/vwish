@@ -2,7 +2,10 @@
 
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
+
+const Object _keep = Object();
 
 /// A media file resolved for the engine at this moment (D-27; `EngineMedia` is a typedef of
 /// this type). Never persisted.
@@ -23,10 +26,23 @@ final class ResolvedMedia {
   /// Whether [uri] is a proxy rendition (same timestamps as the original).
   final bool isProxy;
 
-  @override
-  bool operator ==(Object other) =>
-      other is ResolvedMedia && other.uri == uri && other.fingerprint == fingerprint && other.isProxy == isProxy;
+  /// A copy with the given fields replaced; pass `bookmark: null` to clear it.
+  ResolvedMedia copyWith({String? uri, String? fingerprint, Object? bookmark = _keep, bool? isProxy}) =>
+      ResolvedMedia(
+        uri: uri ?? this.uri,
+        fingerprint: fingerprint ?? this.fingerprint,
+        bookmark: identical(bookmark, _keep) ? this.bookmark : bookmark as Uint8List?,
+        isProxy: isProxy ?? this.isProxy,
+      );
 
   @override
-  int get hashCode => Object.hash(uri, fingerprint, isProxy);
+  bool operator ==(Object other) =>
+      other is ResolvedMedia &&
+      other.uri == uri &&
+      other.fingerprint == fingerprint &&
+      other.isProxy == isProxy &&
+      const ListEquality<int>().equals(other.bookmark, bookmark);
+
+  @override
+  int get hashCode => Object.hash(uri, fingerprint, isProxy, bookmark == null ? null : Object.hashAll(bookmark!));
 }

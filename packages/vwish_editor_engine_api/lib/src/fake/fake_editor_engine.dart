@@ -32,7 +32,38 @@ const EditorCapabilities fakeDefaultCapabilities = EditorCapabilities(
   externalDrop: true,
 );
 
-/// A deterministic fake [EditorEngine].
+/// Call log and failure injection shared by a [FakeEditorEngine] and every service it owns.
+///
+/// Every engine, preview, job, export, recorder, picker and handoff method records its name
+/// (`'capabilities'`, `'preview.seek'`, `'exporter.start'`, …) in [calls]; a failure registered in
+/// [failNext] under that name is thrown (or, for jobs, delivered as the job's error) exactly once.
+///
+/// See ARCH §12 (BUILD_PLAN API-01).
+final class FakeCallLog {
+  /// Every call, in order.
+  final List<String> calls = [];
+
+  /// Failures to deliver from the next call of a method name (consumed when hit).
+  final Map<String, EngineFailure> failNext = {};
+
+  /// Records [name]; throws the registered failure, if any.
+  void hit(String name) {
+    calls.add(name);
+    final f = failNext.remove(name);
+    if (f != null) throw f;
+  }
+
+  /// Records [name] and returns the registered failure instead of throwing (for jobs).
+  EngineFailure? record(String name) {
+    calls.add(name);
+    return failNext.remove(name);
+  }
+}
+
+/// A deterministic fake [EditorEngine] (ARCH §12; BUILD_PLAN API-01).
+///
+/// Time never advances by itself: the preview clock moves only when a test calls
+/// [FakePreviewSession.advanceFrames]; jobs and exports progress only when a test drives them.
 final class FakeEditorEngine implements EditorEngine {
   /// Creates the fake.
   FakeEditorEngine({
@@ -40,9 +71,25 @@ final class FakeEditorEngine implements EditorEngine {
     Map<String, MediaProbe>? probes,
     Map<String, EditCompatibility>? compatibilityByPath,
     List<String> editorRoots = const ['/fake/support/vwish/editor', '/fake/cache/vwish/editor', '/fake/support/vwish/speech'],
+    this.validatePlans = true,
   })  : probes = probes ?? {},
         compatibilityByPath = compatibilityByPath ?? {},
-        access = FakeMediaAccess(editorRoots: editorRoots);
+        access = FakeMediaAccess(editorRoots: editorRoots) {
+    thumbnails = FakeThumbnailSource(log);
+    waveforms = FakeWaveformSource(log);
+    jobs = FakeMediaJobs(log);
+    exporter = FakeExportService(log);
+    recorder = FakeVoiceRecorder(log);
+    picker = FakeMediaPicker(log);
+    files = FakeFileHandoff(log);
+  }
+
+  /// Shared call log and failure injection.
+  final FakeCallLog log = FakeCallLog();
+
+  /// Whether sessions run `PlanValidator` on every plan and throw `planInvalid` like a native
+  /// engine would (ARCH §11.3).
+  final bool validatePlans;
 
   /// Reported capabilities (tests may replace it).
   EditorCapabilities caps;
@@ -54,21 +101,17 @@ final class FakeEditorEngine implements EditorEngine {
   final Map<String, EditCompatibility> compatibilityByPath;
 
   /// Every call, in order (`'openPreview'`, `'preview.seek'`, …).
-  final List<String> calls = [];
+  List<String> get calls => log.calls;
 
-  /// Failures to throw from the next call of a method name.
-  final Map<String, EngineFailure> failNext = {};
+  /// Failures to throw from the next call of a method name (see [FakeCallLog]).
+  Map<String, EngineFailure> get failNext => log.failNext;
 
   /// Open preview sessions.
   final List<FakePreviewSession> sessions = [];
 
   final StreamController<EngineSignal> _signals = StreamController<EngineSignal>.broadcast();
 
-  void _call(String name) {
-    calls.add(name);
-    final f = failNext.remove(name);
-    if (f != null) throw f;
-  }
+  void _call(String name) => log.hit(name);
 
   /// Emits an engine signal.
   void emitSignal(EngineSignal signal) => _signals.add(signal);
@@ -96,34 +139,34 @@ final class FakeEditorEngine implements EditorEngine {
   @override
   Future<PreviewSession> openPreview(PreviewConfig config) async {
     _call('openPreview');
-    final s = FakePreviewSession(textureId: 100 + sessions.length, config: config, log: calls);
+    final s = FakePreviewSession(textureId: 100 + sessions.length, config: config, log: log, validatePlans: validatePlans);
     sessions.add(s);
     return s;
   }
 
   @override
-  final FakeThumbnailSource thumbnails = FakeThumbnailSource();
+  late final FakeThumbnailSource thumbnails;
 
   @override
-  final FakeWaveformSource waveforms = FakeWaveformSource();
+  late final FakeWaveformSource waveforms;
 
   @override
-  final FakeMediaJobs jobs = FakeMediaJobs();
+  late final FakeMediaJobs jobs;
 
   @override
-  final FakeExportService exporter = FakeExportService();
+  late final FakeExportService exporter;
 
   @override
   VoiceRecorder? get voiceRecorder => caps.voiceRecording ? recorder : null;
 
   /// The fake recorder (returned by [voiceRecorder] when supported).
-  final FakeVoiceRecorder recorder = FakeVoiceRecorder();
+  late final FakeVoiceRecorder recorder;
 
   @override
-  final FakeMediaPicker picker = FakeMediaPicker();
+  late final FakeMediaPicker picker;
 
   @override
-  final FakeFileHandoff files = FakeFileHandoff();
+  late final FakeFileHandoff files;
 
   @override
   final FakeMediaAccess access;
@@ -151,9 +194,15 @@ final class FakeEditorEngine implements EditorEngine {
 }
 
 /// Fake preview: tracks the plan revision, applies patches, acks seeks on the frame grid.
+///
+/// Implements the normative semantics of ARCH §12.2: `seq` increases with every seek, play and
+/// pause and each clock sample carries the `seq` of the last command it reflects; exact seeks ack
+/// `timeOfFrame(frameIndexOf(t))`; patches apply only on a matching `from` revision; transients
+/// never touch the revision.
 final class FakePreviewSession implements PreviewSession {
   /// Creates a session.
-  FakePreviewSession({required this.textureId, required this.config, List<String>? log}) : _log = log ?? [];
+  FakePreviewSession({required this.textureId, required this.config, FakeCallLog? log, this.validatePlans = true})
+      : _log = log ?? FakeCallLog();
 
   @override
   final int textureId;
@@ -161,7 +210,10 @@ final class FakePreviewSession implements PreviewSession {
   /// Config it was opened with.
   final PreviewConfig config;
 
-  final List<String> _log;
+  /// Whether plans are validated with `PlanValidator` (throws `planInvalid`).
+  final bool validatePlans;
+
+  final FakeCallLog _log;
   final ValueNotifier<Size?> _frameSize = ValueNotifier<Size?>(null);
   final StreamController<PreviewClock> _clock = StreamController<PreviewClock>.broadcast();
   final StreamController<PreviewEvent> _events = StreamController<PreviewEvent>.broadcast();
@@ -175,8 +227,17 @@ final class FakePreviewSession implements PreviewSession {
   /// Current editing mode.
   PreviewEditingMode mode = PreviewEditingMode.normal;
 
+  /// Current quality.
+  PreviewQuality quality = PreviewQuality.auto;
+
+  /// Whether proxies are used.
+  late bool useProxies = config.useProxies;
+
   /// Whether playing.
   bool playing = false;
+
+  /// Loop range of the current [play], if any.
+  TimeRange? loop;
 
   /// Displayed plan time.
   TimeUs time = 0;
@@ -184,35 +245,83 @@ final class FakePreviewSession implements PreviewSession {
   /// Command sequence number.
   int seq = 0;
 
+  /// Source frame shown by [showSourceFrame] until the next seek or play, as (media, time).
+  (EngineMedia, TimeUs)? sourceFrame;
+
+  /// Colour returned by [sampleColor].
+  Color sampledColor = const Color(0xFF00FF00);
+
   /// Whether [dispose] was called.
   bool disposed = false;
 
+  /// Frames a scrub seek may be off by (0 = exact; ARCH §12.2 allows ±1 GOP).
+  int scrubOffsetFrames = 0;
+
   FrameRate get _grid => FrameRate(plan?.canvas.gridFps ?? config.fps, 1);
 
-  void _emitClock() => _clock.add(PreviewClock(time: time, playing: playing, rate: playing ? 1 : 0, seq: seq));
+  void _emitClock() {
+    if (!_clock.isClosed) _clock.add(PreviewClock(time: time, playing: playing, rate: playing ? 1 : 0, seq: seq));
+  }
+
+  /// Emits [event] to [events] (tests simulate stalls, degradations and surface loss).
+  void emitEvent(PreviewEvent event) {
+    if (!_events.isClosed) _events.add(event);
+  }
+
+  /// Advances the deterministic clock by [frames] project frames while playing and emits one
+  /// clock sample (the real engines emit at 10 Hz). Wraps inside [loop]; stops and pauses at the
+  /// plan end.
+  void advanceFrames(int frames) {
+    if (!playing || frames <= 0) return;
+    final g = _grid;
+    var k = g.frameIndexOf(time) + frames;
+    final loopRange = loop;
+    final end = plan?.durUs ?? 0;
+    if (loopRange != null && loopRange.duration > 0) {
+      final k0 = g.frameIndexOf(loopRange.start);
+      final k1 = g.frameIndexOf(loopRange.end);
+      if (k >= k1 && k1 > k0) k = k0 + (k - k0) % (k1 - k0);
+    } else if (end > 0 && g.timeOfFrame(k) >= end) {
+      k = g.frameIndexOf(end - 1);
+      playing = false;
+      seq++;
+    }
+    time = g.timeOfFrame(k);
+    _emitClock();
+  }
 
   @override
   ValueListenable<Size?> get frameSize => _frameSize;
 
   @override
   Future<PlanAck> setPlan(RenderPlan plan) async {
-    _log.add('preview.setPlan');
+    _log.hit('preview.setPlan');
+    _check(plan);
     final first = this.plan == null;
     this.plan = plan;
     transients.clear();
     _frameSize.value = Size(plan.canvas.w.toDouble(), plan.canvas.h.toDouble());
-    if (first) _events.add(const PreviewFirstFrame());
+    if (first) emitEvent(const PreviewFirstFrame());
     return PlanAck(rev: plan.rev, structural: true, applyMs: 0);
+  }
+
+  void _check(RenderPlan p) {
+    if (!validatePlans) return;
+    final violations = PlanValidator.validate(p);
+    if (violations.isNotEmpty) {
+      throw EngineFailure.of(EngineErrorCode.planInvalid, debugDetail: violations.first.toString());
+    }
   }
 
   @override
   Future<PlanAck> applyPatch(RenderPlanPatch patch) async {
-    _log.add('preview.applyPatch');
+    _log.hit('preview.applyPatch');
     final current = plan;
     if (current == null || current.rev != patch.from) {
       throw EngineFailure.of(EngineErrorCode.planOutOfSync, debugDetail: 'from ${patch.from} != ${current?.rev}');
     }
     final (next, structural) = applyFakePatch(current, patch);
+    _check(next);
     plan = next;
     for (final id in [...patch.layers.remove, ...patch.layers.upsert.map((l) => l.id)]) {
       transients.remove(PlanIds.itemOf(id));
@@ -222,27 +331,29 @@ final class FakePreviewSession implements PreviewSession {
 
   @override
   void setTransient(ItemId item, PlanTransient transient) {
-    _log.add('preview.setTransient');
+    _log.calls.add('preview.setTransient');
     transients[item] = transient;
   }
 
   @override
   void clearTransient(ItemId item) {
-    _log.add('preview.clearTransient');
+    _log.calls.add('preview.clearTransient');
     transients.remove(item);
   }
 
   @override
   Future<void> play({TimeRange? loop}) async {
-    _log.add('preview.play');
+    _log.hit('preview.play');
     playing = true;
+    this.loop = loop;
+    sourceFrame = null;
     seq++;
     _emitClock();
   }
 
   @override
   Future<void> pause() async {
-    _log.add('preview.pause');
+    _log.hit('preview.pause');
     playing = false;
     seq++;
     _emitClock();
@@ -250,41 +361,58 @@ final class FakePreviewSession implements PreviewSession {
 
   @override
   Future<SeekAck> seek(TimeUs t, {SeekKind kind = SeekKind.exact}) async {
-    _log.add('preview.seek');
-    final k = _grid.frameIndexOf(t < 0 ? 0 : t);
+    _log.hit('preview.seek');
+    var k = _grid.frameIndexOf(t < 0 ? 0 : t);
+    if (kind == SeekKind.scrub && k + scrubOffsetFrames >= 0) k += scrubOffsetFrames;
     time = _grid.timeOfFrame(k);
+    sourceFrame = null;
     seq++;
     _emitClock();
     return SeekAck(requested: t, displayedFrameTime: time, displayedFrame: k, seq: seq);
   }
 
   @override
-  Future<void> setQuality(PreviewQuality quality) async => _log.add('preview.setQuality');
+  Future<void> setQuality(PreviewQuality quality) async {
+    _log.hit('preview.setQuality');
+    this.quality = quality;
+  }
 
   @override
-  Future<void> setUseProxies(bool on) async => _log.add('preview.setUseProxies');
+  Future<void> setUseProxies(bool on) async {
+    _log.hit('preview.setUseProxies');
+    useProxies = on;
+  }
 
   @override
   Future<void> setEditingMode(PreviewEditingMode mode) async {
-    _log.add('preview.setEditingMode');
+    _log.hit('preview.setEditingMode');
     this.mode = mode;
   }
 
   @override
-  Future<void> showSourceFrame(EngineMedia media, TimeUs sourceTime) async => _log.add('preview.showSourceFrame');
+  Future<void> showSourceFrame(EngineMedia media, TimeUs sourceTime) async {
+    _log.hit('preview.showSourceFrame');
+    sourceFrame = (media, sourceTime);
+  }
 
   @override
-  Future<Color?> sampleColor(ItemId item, Offset normalizedSourcePoint) async => const Color(0xFF00FF00);
+  Future<Color?> sampleColor(ItemId item, Offset normalizedSourcePoint) async {
+    _log.hit('preview.sampleColor');
+    return sampledColor;
+  }
 
   @override
-  Future<List<Uint8List>> renderLookStills(ItemId item, List<LookSpec> looks, {required int heightPx}) async =>
-      [for (final _ in looks) Uint8List(0)];
+  Future<List<Uint8List>> renderLookStills(ItemId item, List<LookSpec> looks, {required int heightPx}) async {
+    _log.hit('preview.renderLookStills');
+    return [for (final _ in looks) Uint8List(0)];
+  }
 
   @override
-  Future<void> refresh() async => _log.add('preview.refresh');
+  Future<void> refresh() async => _log.hit('preview.refresh');
 
   @override
   Future<Uint8List> debugCaptureFrame() async {
+    _log.hit('preview.debugCaptureFrame');
     final c = plan?.canvas;
     return Uint8List((c?.w ?? 2) * (c?.h ?? 2) * 4);
   }
@@ -297,8 +425,9 @@ final class FakePreviewSession implements PreviewSession {
 
   @override
   Future<void> dispose() async {
-    _log.add('preview.dispose');
+    _log.calls.add('preview.dispose');
     disposed = true;
+    playing = false;
     await _clock.close();
     await _events.close();
   }
@@ -335,7 +464,13 @@ final class FakePreviewSession implements PreviewSession {
   }
   for (final a in patch.audio.upsert) {
     final old = audio[a.id];
-    if (old == null || old.t0 != a.t0 || old.t1 != a.t1 || old.asset != a.asset || old.stream != a.stream || old.pitch != a.pitch || !_sameMap(old.map, a.map)) {
+    if (old == null ||
+        old.t0 != a.t0 ||
+        old.t1 != a.t1 ||
+        old.asset != a.asset ||
+        old.stream != a.stream ||
+        old.pitch != a.pitch ||
+        !_sameMap(old.map, a.map)) {
       structural = true;
     }
     audio[a.id] = a;
@@ -368,12 +503,17 @@ bool _sameMap(List<MapSegment> a, List<MapSegment> b) {
 
 /// A scriptable job. Completes when the test calls [complete] or [fail] (or at once when created
 /// with [FakeMediaJob.done]).
+///
+/// See ARCH §12.3.
 final class FakeMediaJob<T> implements MediaJob<T> {
   /// Creates a pending job.
-  FakeMediaJob(this.id);
+  FakeMediaJob(this.id) {
+    _result.future.ignore();
+  }
 
   /// Creates a job that completes with [value] on the next microtask.
   FakeMediaJob.done(this.id, T value) {
+    _result.future.ignore();
     scheduleMicrotask(() => complete(value));
   }
 
@@ -424,40 +564,98 @@ final class FakeMediaJob<T> implements MediaJob<T> {
 }
 
 /// Fake thumbnails: empty JPEG strips.
+///
+/// See ARCH §12.3.
 final class FakeThumbnailSource implements ThumbnailSource {
+  /// Creates the fake.
+  FakeThumbnailSource([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
+
   /// Requests received.
   final List<ThumbnailRequest> requests = [];
+
+  /// Priorities of [requests], in order.
+  final List<ThumbPriority> priorities = [];
 
   @override
   ThumbnailHandle request(ThumbnailRequest request, {required ThumbPriority priority}) {
     requests.add(request);
-    return _FakeThumbHandle(ThumbnailTile(encoded: Uint8List(0), frames: request.framesPerTile, frameWidthPx: request.heightPx * 16 ~/ 9));
+    priorities.add(priority);
+    final failure = _log.record('thumbnails.request');
+    final handle = FakeThumbnailHandle._();
+    if (failure != null) {
+      handle._complete(failure: failure);
+    } else {
+      handle._complete(tile: ThumbnailTile(encoded: Uint8List(0), frames: request.framesPerTile, frameWidthPx: request.heightPx * 16 ~/ 9));
+    }
+    return handle;
   }
 }
 
-final class _FakeThumbHandle implements ThumbnailHandle {
-  _FakeThumbHandle(ThumbnailTile tile) : _result = Future.value(tile);
+/// Handle of a fake thumbnail request. Completes on the next microtask unless cancelled first;
+/// [cancelled] tells whether [cancel] won the race.
+///
+/// See ARCH §12.3.
+final class FakeThumbnailHandle implements ThumbnailHandle {
+  FakeThumbnailHandle._() {
+    _result.future.ignore();
+  }
 
-  final Future<ThumbnailTile> _result;
+  final Completer<ThumbnailTile> _result = Completer<ThumbnailTile>();
+
+  /// Whether [cancel] completed the request with `EngineCancelled`.
+  bool cancelled = false;
+
+  void _complete({ThumbnailTile? tile, EngineFailure? failure}) {
+    scheduleMicrotask(() {
+      if (_result.isCompleted) return;
+      if (failure != null) {
+        _result.completeError(failure);
+      } else {
+        _result.complete(tile);
+      }
+    });
+  }
 
   @override
-  Future<ThumbnailTile> get result => _result;
+  Future<ThumbnailTile> get result => _result.future;
 
   @override
-  void cancel() {}
+  void cancel() {
+    if (_result.isCompleted) return;
+    cancelled = true;
+    _result.completeError(const EngineCancelled());
+  }
 }
 
 /// Fake waveforms: flat peaks.
+///
+/// See ARCH §12.3.
 final class FakeWaveformSource implements WaveformSource {
+  /// Creates the fake.
+  FakeWaveformSource([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
   var _n = 0;
 
   @override
-  MediaJob<WaveformPeaks> peaks(EngineMedia media, {int audioStream = 0}) =>
-      FakeMediaJob<WaveformPeaks>.done('wave-${_n++}', WaveformPeaks(minMax: Int8List(400), duration: 1000000));
+  MediaJob<WaveformPeaks> peaks(EngineMedia media, {int audioStream = 0}) {
+    final failure = _log.record('waveforms.peaks');
+    final id = 'wave-${_n++}';
+    if (failure == null) return FakeMediaJob<WaveformPeaks>.done(id, WaveformPeaks(minMax: Int8List(400), duration: 1000000));
+    return FakeMediaJob<WaveformPeaks>(id)..fail(failure);
+  }
 }
 
 /// Fake media jobs; every job is pending until the test completes it via [created].
+///
+/// See ARCH §12.3.
 final class FakeMediaJobs implements MediaJobs {
+  /// Creates the fake.
+  FakeMediaJobs([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
   var _n = 0;
 
   /// Jobs created, in order.
@@ -467,8 +665,10 @@ final class FakeMediaJobs implements MediaJobs {
   final Map<String, ProxyStatus> proxyStates = {};
 
   FakeMediaJob<T> _job<T>(String kind) {
+    final failure = _log.record('jobs.$kind');
     final j = FakeMediaJob<T>('$kind-${_n++}');
     created.add(j as FakeMediaJob<Object?>);
+    if (failure != null) j.fail(failure);
     return j;
   }
 
@@ -479,19 +679,24 @@ final class FakeMediaJobs implements MediaJobs {
   MediaJob<GeneratedAsset> reverse(EngineMedia media, TimeRange source, {required String outputPath}) => _job<GeneratedAsset>('reverse');
 
   @override
-  MediaJob<GeneratedAsset> freezeFrame(EngineMedia media, TimeUs sourceTime, {required String outputPath}) => _job<GeneratedAsset>('freeze');
+  MediaJob<GeneratedAsset> freezeFrame(EngineMedia media, TimeUs sourceTime, {required String outputPath}) =>
+      _job<GeneratedAsset>('freezeFrame');
 
   @override
-  MediaJob<ExtractedSpeechAudio> extractSpeechAudio(SpeechAudioJobRequest request) => _job<ExtractedSpeechAudio>('speech');
+  MediaJob<ExtractedSpeechAudio> extractSpeechAudio(SpeechAudioJobRequest request) => _job<ExtractedSpeechAudio>('extractSpeechAudio');
 
   @override
   ProxyStatus proxyStatus(EngineMedia media) => proxyStates[media.fingerprint] ?? ProxyStatus.none;
 }
 
 /// A scriptable export job.
+///
+/// See ARCH §12.4.
 final class FakeExportJob implements ExportJob {
   /// Creates a job.
-  FakeExportJob(this.id, this.outputPath, this.durationUs);
+  FakeExportJob(this.id, this.outputPath, this.durationUs) {
+    _result.future.ignore();
+  }
 
   @override
   final String id;
@@ -512,9 +717,13 @@ final class FakeExportJob implements ExportJob {
   Future<ExportResult> get result => _result.future;
 
   /// Reports progress.
-  void report(double fraction, {bool pausedInBackground = false}) => _progress.add(
-        ExportProgress(phase: ExportPhase.rendering, fraction: fraction, pausedInBackground: pausedInBackground),
-      );
+  void report(double fraction, {ExportPhase phase = ExportPhase.rendering, bool pausedInBackground = false, bool backgrounded = false}) {
+    if (_progress.isClosed) return;
+    _progress.add(ExportProgress(phase: phase, fraction: fraction, pausedInBackground: pausedInBackground, backgrounded: backgrounded));
+  }
+
+  /// Whether [cancel] was called.
+  bool cancelled = false;
 
   /// Completes successfully.
   void finish() {
@@ -531,11 +740,20 @@ final class FakeExportJob implements ExportJob {
   }
 
   @override
-  Future<void> cancel() async => fail(const EngineCancelled());
+  Future<void> cancel() async {
+    cancelled = true;
+    fail(const EngineCancelled());
+  }
 }
 
 /// Fake export service with scriptable job records.
+///
+/// See ARCH §12.4, D-22, D-39.
 final class FakeExportService implements ExportService {
+  /// Creates the fake.
+  FakeExportService([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
   var _n = 0;
 
   /// Records returned by [activeJobs] (one-shot ones until consumed).
@@ -551,21 +769,27 @@ final class FakeExportService implements ExportService {
   ExportDetachedHandoff? lastWhenDetached;
 
   @override
-  Future<ExportPreflight> preflight(RenderPlan plan, EncodeSettings settings) async => preflightResult;
+  Future<ExportPreflight> preflight(RenderPlan plan, EncodeSettings settings) async {
+    _log.hit('exporter.preflight');
+    return preflightResult;
+  }
 
   @override
   Future<ExportJob> start(RenderPlan plan, EncodeSettings settings,
       {required String outputPath, required String title, ExportDetachedHandoff whenDetached = ExportDetachedHandoff.saveToGallery}) async {
+    _log.hit('exporter.start');
     lastWhenDetached = whenDetached;
     final job = FakeExportJob('export-${_n++}', outputPath, plan.durUs);
     started.add(job);
     records.add(ExportRunning(job));
-    unawaited(job.result.then((_) {}, onError: (_) {}).whenComplete(() => records.removeWhere((r) => r is ExportRunning && r.jobId == job.id)));
+    unawaited(
+        job.result.then((_) {}, onError: (_) {}).whenComplete(() => records.removeWhere((r) => r is ExportRunning && r.jobId == job.id)));
     return job;
   }
 
   @override
   Future<ExportJob> resume(String jobId) async {
+    _log.hit('exporter.resume');
     final i = records.indexWhere((r) => r is ExportResumable && r.jobId == jobId);
     if (i < 0) throw EngineFailure.of(EngineErrorCode.notSupportedOnDevice, debugDetail: 'not resumable');
     records.removeAt(i);
@@ -576,51 +800,123 @@ final class FakeExportService implements ExportService {
   }
 
   @override
-  Future<List<ExportJobState>> activeJobs() async => List.unmodifiable(records);
+  Future<List<ExportJobState>> activeJobs() async {
+    _log.hit('exporter.activeJobs');
+    return List.unmodifiable(records);
+  }
 
   @override
-  Future<void> consumeJobRecord(String jobId) async =>
-      records.removeWhere((r) => r.jobId == jobId && (r is ExportInterrupted || r is ExportCompletedWhileDetached));
+  Future<void> consumeJobRecord(String jobId) async {
+    _log.hit('exporter.consumeJobRecord');
+    records.removeWhere((r) => r.jobId == jobId && (r is ExportInterrupted || r is ExportCompletedWhileDetached));
+  }
 }
 
 /// Fake recorder: always granted, records nothing.
+///
+/// See ARCH §12.4.
 final class FakeVoiceRecorder implements VoiceRecorder {
+  /// Creates the fake.
+  FakeVoiceRecorder([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
+
   /// Permission reported.
   MicPermission permissionState = MicPermission.granted;
 
-  @override
-  Future<MicPermission> permission() async => permissionState;
+  /// Permission granted by [requestPermission] (null = unchanged).
+  MicPermission? permissionAfterRequest;
+
+  /// Sessions started, in order.
+  final List<FakeRecordingSession> sessions = [];
 
   @override
-  Future<MicPermission> requestPermission() async => permissionState;
+  Future<MicPermission> permission() async {
+    _log.hit('recorder.permission');
+    return permissionState;
+  }
 
   @override
-  Future<void> openSystemSettings() async {}
+  Future<MicPermission> requestPermission() async {
+    _log.hit('recorder.requestPermission');
+    return permissionState = permissionAfterRequest ?? permissionState;
+  }
 
   @override
-  Future<RecordingSession> start({required String outputPath}) async => _FakeRecording(outputPath);
+  Future<void> openSystemSettings() async => _log.hit('recorder.openSystemSettings');
+
+  @override
+  Future<RecordingSession> start({required String outputPath}) async {
+    _log.hit('recorder.start');
+    if (permissionState != MicPermission.granted) throw EngineFailure.of(EngineErrorCode.permissionDenied);
+    final s = FakeRecordingSession(outputPath);
+    sessions.add(s);
+    return s;
+  }
 }
 
-final class _FakeRecording implements RecordingSession {
-  _FakeRecording(this.path);
+/// A fake recording; tests push levels and interruptions.
+///
+/// See ARCH §12.4.
+final class FakeRecordingSession implements RecordingSession {
+  /// Creates a session writing (nominally) to [path].
+  FakeRecordingSession(this.path);
 
+  /// WAV path.
   final String path;
 
-  @override
-  Stream<double> get levels => const Stream.empty();
+  final StreamController<double> _levels = StreamController<double>.broadcast();
+  final StreamController<RecordingInterruption> _interruptions = StreamController<RecordingInterruption>.broadcast();
+
+  /// Duration reported by [stop].
+  TimeUs durationUs = 3000000;
+
+  /// Whether [stop] was called.
+  bool stopped = false;
+
+  /// Whether [cancel] was called.
+  bool cancelled = false;
+
+  /// Emits an input level.
+  void emitLevel(double level) => _levels.add(level);
+
+  /// Emits an interruption and stops, keeping the file.
+  void interrupt(RecordingInterruption why) {
+    _interruptions.add(why);
+    stopped = true;
+  }
 
   @override
-  Stream<RecordingInterruption> get interruptions => const Stream.empty();
+  Stream<double> get levels => _levels.stream;
 
   @override
-  Future<RecordedAsset> stop() async => RecordedAsset(path: path, durationUs: 3000000, startLatencyUs: 20000);
+  Stream<RecordingInterruption> get interruptions => _interruptions.stream;
 
   @override
-  Future<void> cancel() async {}
+  Future<RecordedAsset> stop() async {
+    stopped = true;
+    await _levels.close();
+    await _interruptions.close();
+    return RecordedAsset(path: path, durationUs: durationUs, startLatencyUs: 20000);
+  }
+
+  @override
+  Future<void> cancel() async {
+    cancelled = true;
+    await _levels.close();
+    await _interruptions.close();
+  }
 }
 
 /// Fake picker returning [nextPicks] once.
+///
+/// See ARCH §12.4.
 final class FakeMediaPicker implements MediaPicker {
+  /// Creates the fake.
+  FakeMediaPicker([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
+
   /// Items the next [pick] returns.
   List<PickedMedia> nextPicks = const [];
 
@@ -629,6 +925,7 @@ final class FakeMediaPicker implements MediaPicker {
 
   @override
   Future<List<PickedMedia>> pick(MediaPickRequest request) async {
+    _log.hit('picker.pick');
     requests.add(request);
     final out = nextPicks;
     nextPicks = const [];
@@ -637,24 +934,34 @@ final class FakeMediaPicker implements MediaPicker {
 }
 
 /// Fake handoff (always succeeds).
+///
+/// See ARCH §12.4.
 final class FakeFileHandoff implements FileHandoff {
-  /// Paths handed off, with the action.
+  /// Creates the fake.
+  FakeFileHandoff([FakeCallLog? log]) : _log = log ?? FakeCallLog();
+
+  final FakeCallLog _log;
+
+  /// Actions taken (`'photos'`, `'files'`, `'share'`).
   final List<String> log = [];
 
   @override
   Future<FileHandoffResult> saveToPhotos(String path) async {
+    _log.hit('files.saveToPhotos');
     log.add('photos');
     return const FileHandoffResult(FileHandoffOutcome.done, savedUri: 'fake://photos/1');
   }
 
   @override
   Future<FileHandoffResult> saveToFiles(String path, String suggestedName) async {
+    _log.hit('files.saveToFiles');
     log.add('files');
     return const FileHandoffResult(FileHandoffOutcome.done);
   }
 
   @override
   Future<FileHandoffResult> share(String path) async {
+    _log.hit('files.share');
     log.add('share');
     return const FileHandoffResult(FileHandoffOutcome.done);
   }
@@ -721,6 +1028,8 @@ final class FakeMediaAccess implements MediaAccess {
 }
 
 /// Fake background guard (leases always granted).
+///
+/// See ARCH §12.4.
 final class FakeBackgroundWorkGuard implements BackgroundWorkGuard {
   var _n = 0;
 
@@ -751,6 +1060,8 @@ final class _FakeLease implements BackgroundLease {
 }
 
 /// Fake drop target; tests push drops with [simulateDrop].
+///
+/// See ARCH §12.4, D-18.
 final class FakeExternalDropTarget implements ExternalDropTarget {
   final StreamController<ExternalDrop> _drops = StreamController<ExternalDrop>.broadcast();
 

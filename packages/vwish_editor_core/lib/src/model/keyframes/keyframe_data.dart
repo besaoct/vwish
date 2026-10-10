@@ -20,6 +20,9 @@ final class Keyframe {
   /// Value in model units (see the property's `PropertyKey`).
   final double v;
 
+  /// A copy with the given fields replaced.
+  Keyframe copyWith({TimeUs? t, double? v}) => Keyframe(t ?? this.t, v ?? this.v);
+
   @override
   bool operator ==(Object other) => other is Keyframe && other.t == t && other.v == v;
 
@@ -38,6 +41,9 @@ final class KeyframeTrack {
 
   /// Keys (unmodifiable).
   final List<Keyframe> keys;
+
+  /// A copy with the given keys.
+  KeyframeTrack copyWith({List<Keyframe>? keys}) => KeyframeTrack(keys ?? this.keys);
 
   @override
   bool operator ==(Object other) =>
@@ -65,6 +71,10 @@ final class KeyframeSet {
   /// Whether no channel has keys.
   bool get isEmpty => byChannel.isEmpty;
 
+  /// A copy with the given channel map.
+  KeyframeSet copyWith({Map<String, KeyframeTrack>? byChannel}) =>
+      byChannel == null ? this : (byChannel.isEmpty ? KeyframeSet.empty : KeyframeSet(byChannel));
+
   /// The track of [channel], if any.
   KeyframeTrack? operator [](String channel) => byChannel[channel];
 
@@ -90,6 +100,10 @@ final class KeyframeRef {
 
   /// Item-local time of the key.
   final TimeUs t;
+
+  /// A copy with the given fields replaced.
+  KeyframeRef copyWith({ItemId? item, String? property, TimeUs? t}) =>
+      KeyframeRef(item ?? this.item, property ?? this.property, t ?? this.t);
 
   @override
   bool operator ==(Object other) =>

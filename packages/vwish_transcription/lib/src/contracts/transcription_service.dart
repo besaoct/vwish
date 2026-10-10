@@ -566,16 +566,19 @@ abstract interface class TranscriptionService {
   /// Cancels the running download (keeps the partial file).
   Future<void> cancelDownload();
 
-  /// Deletes every model (blocked while a job runs). The next use asks for consent again.
+  /// Deletes every model. Blocked while a job runs: throws [StateError] (the UI disables the
+  /// action while [activeJob] is non-null). The next use asks for consent again.
   Future<void> deleteModel();
 
-  /// Deletes one model.
+  /// Deletes one model; blocked while a job runs like [deleteModel].
   Future<void> deleteModelById(String modelId);
 
   /// Memory, disk and download checks before starting.
   Future<TranscriptionPreflight> preflight(TranscriptionRequest request);
 
-  /// Starts a job (one at a time; waits while an export runs).
+  /// Starts a job. One job at a time (a second call while [activeJob] is non-null throws
+  /// [StateError]); the job waits while an export runs ([PauseReason.waitingForExport]). Failures
+  /// surface on [TranscriptionJob.result], never synchronously.
   TranscriptionJob start(TranscriptionRequest request);
 
   /// Instant "Regenerate → re-split" from cached transcripts.

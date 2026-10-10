@@ -4,7 +4,10 @@
 
 import 'dart:typed_data';
 
+import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
+
+const Object _keep = Object();
 
 /// Where an asset came from; drives the import policy (D-13).
 enum MediaOrigin {
@@ -66,6 +69,24 @@ final class PickedMedia {
   /// Size when known.
   final int? sizeBytes;
 
+  /// A copy with the given fields replaced; pass `bookmark: null` or `sizeBytes: null` to clear them.
+  PickedMedia copyWith({
+    String? uri,
+    String? displayName,
+    MediaOrigin? origin,
+    bool? isTemporaryCopy,
+    Object? bookmark = _keep,
+    Object? sizeBytes = _keep,
+  }) =>
+      PickedMedia(
+        uri: uri ?? this.uri,
+        displayName: displayName ?? this.displayName,
+        origin: origin ?? this.origin,
+        isTemporaryCopy: isTemporaryCopy ?? this.isTemporaryCopy,
+        bookmark: identical(bookmark, _keep) ? this.bookmark : bookmark as Uint8List?,
+        sizeBytes: identical(sizeBytes, _keep) ? this.sizeBytes : sizeBytes as int?,
+      );
+
   @override
   bool operator ==(Object other) =>
       other is PickedMedia &&
@@ -73,10 +94,12 @@ final class PickedMedia {
       other.displayName == displayName &&
       other.origin == origin &&
       other.isTemporaryCopy == isTemporaryCopy &&
-      other.sizeBytes == sizeBytes;
+      other.sizeBytes == sizeBytes &&
+      const ListEquality<int>().equals(other.bookmark, bookmark);
 
   @override
-  int get hashCode => Object.hash(uri, displayName, origin, isTemporaryCopy, sizeBytes);
+  int get hashCode => Object.hash(
+      uri, displayName, origin, isTemporaryCopy, sizeBytes, bookmark == null ? null : Object.hashAll(bookmark!));
 }
 
 /// Handle passed to `MediaAccessPort.persist` (currently the picked item itself).

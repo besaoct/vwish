@@ -23,6 +23,7 @@ class VwishHomeScreen extends ConsumerStatefulWidget {
     required this.onOpenFolder,
     required this.onOpenPlaylist,
     this.onOpenSettings,
+    this.onOpenEditor,
   });
 
   final VoidCallback onOpenPlayer;
@@ -31,6 +32,11 @@ class VwishHomeScreen extends ConsumerStatefulWidget {
 
   /// Shows a settings button at the end of the header when set.
   final VoidCallback? onOpenSettings;
+
+  /// Shows the video editor button immediately left of the settings button when set; null hides
+  /// it (the app passes null where the editor is unavailable). This package never imports the
+  /// editor: the router supplies the navigation.
+  final VoidCallback? onOpenEditor;
 
   @override
   ConsumerState<VwishHomeScreen> createState() => _VwishHomeScreenState();
@@ -193,7 +199,7 @@ class _VwishHomeScreenState extends ConsumerState<VwishHomeScreen> {
                     ),
                     sliver: SliverList.list(
                       children: [
-                        _HomeHeader(onOpenSettings: widget.onOpenSettings),
+                        _HomeHeader(onOpenSettings: widget.onOpenSettings, onOpenEditor: widget.onOpenEditor),
                         const SizedBox(height: VwishSpacing.xl),
                         _NowPlayingCard(onOpen: widget.onOpenPlayer),
                         _QuickActions(
@@ -472,9 +478,10 @@ class _VwishHomeScreenState extends ConsumerState<VwishHomeScreen> {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({this.onOpenSettings});
+  const _HomeHeader({this.onOpenSettings, this.onOpenEditor});
 
   final VoidCallback? onOpenSettings;
+  final VoidCallback? onOpenEditor;
 
   @override
   Widget build(BuildContext context) {
@@ -493,6 +500,19 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
         ),
+        // Fixed-size buttons: the title ellipsizes first (it keeps 96 px at 280 px wide).
+        if (onOpenEditor != null) ...[
+          const SizedBox(width: VwishSpacing.sm),
+          VwishIconButton(
+            icon: Icons.movie_edit,
+            variant: VwishIconButtonVariant.tonal,
+            size: 44,
+            iconSize: 22,
+            tooltip: 'Video editor',
+            semanticLabel: 'Open video editor',
+            onPressed: onOpenEditor,
+          ),
+        ],
         if (onOpenSettings != null) ...[
           const SizedBox(width: VwishSpacing.sm),
           VwishIconButton(

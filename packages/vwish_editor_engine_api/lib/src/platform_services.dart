@@ -9,6 +9,8 @@ import 'package:meta/meta.dart';
 import 'package:vwish_editor_core/model.dart';
 
 /// Where to pick from.
+///
+/// See ARCH §12.4.
 enum MediaPickSource {
   /// iOS PHPicker / Android Photo Picker (no library permission).
   photos,
@@ -18,6 +20,8 @@ enum MediaPickSource {
 }
 
 /// What may be picked.
+///
+/// See ARCH §12.4.
 enum MediaPickKind {
   /// Videos.
   video,
@@ -36,6 +40,8 @@ enum MediaPickKind {
 }
 
 /// A picker request.
+///
+/// See ARCH §12.4.
 @immutable
 final class MediaPickRequest {
   /// Creates a request.
@@ -59,6 +65,8 @@ abstract interface class MediaPicker {
 }
 
 /// Outcome of a file handoff.
+///
+/// See ARCH §12.4.
 enum FileHandoffOutcome {
   /// Saved / shared.
   done,
@@ -74,6 +82,8 @@ enum FileHandoffOutcome {
 }
 
 /// Result of a file handoff.
+///
+/// See ARCH §12.4.
 @immutable
 final class FileHandoffResult {
   /// Creates a result.
@@ -87,6 +97,8 @@ final class FileHandoffResult {
 }
 
 /// Delivers an export to the user (Photos add-only, Files/SAF, share sheet).
+///
+/// See ARCH §12.4.
 abstract interface class FileHandoff {
   /// Adds the video to Photos / Gallery (`Movies/Vwish`).
   Future<FileHandoffResult> saveToPhotos(String path);
@@ -101,12 +113,16 @@ abstract interface class FileHandoff {
 /// The engine's media access: core [MediaAccessPort] (bookmarks, URI grants, stat, hash,
 /// `excludeFromBackup` refusing paths outside the editor roots, D-44) plus the notification
 /// permission prompt used by background export on Android.
+///
+/// See ARCH §12.4, §9, D-44.
 abstract interface class MediaAccess implements MediaAccessPort {
   /// Asks for `POST_NOTIFICATIONS` (Android 13+); true elsewhere.
   Future<bool> requestNotificationPermission();
 }
 
 /// A background-work lease (iOS `beginBackgroundTask`, Android FGS-hosted lease).
+///
+/// See ARCH §12.4.
 abstract interface class BackgroundLease {
   /// Lease id.
   String get id;
@@ -119,6 +135,8 @@ abstract interface class BackgroundLease {
 }
 
 /// Keeps work alive while the app is in the background.
+///
+/// See ARCH §12.4.
 abstract interface class BackgroundWorkGuard {
   /// Acquires a lease showing [title] and [progress]; null when not available.
   Future<BackgroundLease?> acquire({required String title, required Stream<double> progress});
@@ -126,6 +144,8 @@ abstract interface class BackgroundWorkGuard {
 
 /// Items dropped onto the app from another app (D-18). Items are already app-owned temporary
 /// copies (`work/drops/`), imported as managed copies.
+///
+/// See ARCH §12.4, D-18.
 @immutable
 final class ExternalDrop {
   /// Creates a drop.
@@ -139,6 +159,8 @@ final class ExternalDrop {
 }
 
 /// External drag-and-drop target (iPad/iPhone `UIDropInteraction`, Android `OnDragListener`).
+///
+/// See ARCH §12.4, D-18.
 abstract interface class ExternalDropTarget {
   /// Enables or disables accepting drops (enabled only while the editor is visible).
   Future<void> setEnabled(bool on);

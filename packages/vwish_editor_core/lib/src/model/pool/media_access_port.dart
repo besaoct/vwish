@@ -9,6 +9,8 @@ import 'media_locator.dart';
 import 'picked_media.dart';
 import 'resolved_media.dart';
 
+const Object _keep = Object();
+
 /// File metadata returned by [MediaAccessPort.stat].
 @immutable
 final class MediaStat {
@@ -20,6 +22,22 @@ final class MediaStat {
 
   /// Modification time (ms since epoch), when available.
   final int? modifiedMs;
+
+  /// A copy with the given fields replaced; pass `modifiedMs: null` to clear it.
+  MediaStat copyWith({int? sizeBytes, Object? modifiedMs = _keep}) => MediaStat(
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+        modifiedMs: identical(modifiedMs, _keep) ? this.modifiedMs : modifiedMs as int?,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is MediaStat && other.sizeBytes == sizeBytes && other.modifiedMs == modifiedMs;
+
+  @override
+  int get hashCode => Object.hash(sizeBytes, modifiedMs);
+
+  @override
+  String toString() => 'MediaStat($sizeBytes bytes, modifiedMs: $modifiedMs)';
 }
 
 /// Why access to media failed.
@@ -50,6 +68,17 @@ final class MediaAccessFailure implements Exception {
 
   /// Diagnostic text without paths or user content.
   final String debugDetail;
+
+  /// A copy with the given fields replaced.
+  MediaAccessFailure copyWith({MediaAccessFailureKind? kind, String? debugDetail}) =>
+      MediaAccessFailure(kind ?? this.kind, debugDetail ?? this.debugDetail);
+
+  @override
+  bool operator ==(Object other) =>
+      other is MediaAccessFailure && other.kind == kind && other.debugDetail == debugDetail;
+
+  @override
+  int get hashCode => Object.hash(kind, debugDetail);
 
   @override
   String toString() => 'MediaAccessFailure($kind${debugDetail.isEmpty ? '' : ': $debugDetail'})';

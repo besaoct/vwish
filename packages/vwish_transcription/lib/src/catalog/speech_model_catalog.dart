@@ -4,6 +4,7 @@
 // Stored in <support>/vwish/speech/models/ (backup-excluded).
 
 import 'package:meta/meta.dart';
+import 'package:vwish_whisper/vwish_whisper.dart' show WhisperDtwPreset;
 
 /// Quality tiers shown in the UI.
 enum SpeechModelTier {
@@ -15,21 +16,6 @@ enum SpeechModelTier {
 
   /// Accurate (small q5_1); hidden on devices with < 4 GB RAM.
   accurate,
-}
-
-/// whisper DTW alignment-head presets (off in v1 unless tuning enables them).
-enum WhisperDtwPreset {
-  /// Off.
-  none,
-
-  /// tiny.
-  tiny,
-
-  /// base.
-  base,
-
-  /// small.
-  small,
 }
 
 const int _gib = 1024 * 1024 * 1024;
@@ -69,7 +55,9 @@ final class SpeechModelSpec {
   /// SHA-256 (lowercase hex).
   final String sha256;
 
-  /// Smallest device RAM offering this tier.
+  /// Marketed device RAM that offers this tier (2, 3 and 4 GiB, ARCH §16.2). Devices report
+  /// less than they are sold with (a 4 GB phone reports 3.5-3.9 GiB), so the check is
+  /// [isAvailableOn], never a plain comparison with this value.
   final int minDeviceRamBytes;
 
   /// Peak memory budget while transcribing (preflight requires 1.3× this available).
@@ -80,12 +68,30 @@ final class SpeechModelSpec {
 
   /// Download host shown in the consent view (`huggingface.co`).
   String get host => Uri.parse(url).host;
+
+  /// Whether a device reporting [physicalRamBytes] offers this tier: at least
+  /// [SpeechModelCatalog.ramSlack] of the marketed RAM, so 4 GB devices (3.5-3.9 GiB reported)
+  /// qualify for Accurate and 3 GB devices (2.7-3.0 GiB) do not.
+  bool isAvailableOn(int physicalRamBytes) => physicalRamBytes >= minDeviceRamBytes * SpeechModelCatalog.ramSlack;
+
+  @override
+  bool operator ==(Object other) => other is SpeechModelSpec && other.id == id && other.sha256 == sha256 && other.bytes == bytes;
+
+  @override
+  int get hashCode => Object.hash(id, sha256, bytes);
+
+  @override
+  String toString() => 'SpeechModelSpec($id)';
 }
 
 /// The pinned catalog.
 abstract final class SpeechModelCatalog {
   /// Bump when entries change.
   static const int revision = 1;
+
+  /// Fraction of the marketed RAM a device must report to offer a tier (reported RAM is always
+  /// below the marketed size: 2 GB phones report ~1.8-1.9 GiB, 3 GB ~2.7-3.0, 4 GB ~3.5-3.9).
+  static const double ramSlack = 0.8;
 
   /// Download host named in the privacy policy (INT-04 test).
   static const String host = 'huggingface.co';
@@ -170,10 +176,17 @@ abstract final class SpeechModelCatalog {
   static List<SpeechModelTier> availableTiers({required int physicalRamBytes, required bool is64Bit, bool isLowRamDevice = false}) {
     if (!is64Bit) return const [];
     if (isLowRamDevice) return const [SpeechModelTier.fast];
-    return [for (final m in models) if (physicalRamBytes >= m.minDeviceRamBytes) m.tier];
+    return [for (final m in models) if (m.isAvailableOn(physicalRamBytes)) m.tier];
   }
+
+  /// The spec of [tier] (the VAD model belongs to no tier).
+  static SpeechModelSpec specOf(SpeechModelTier tier) => switch (tier) {
+        SpeechModelTier.fast => fast,
+        SpeechModelTier.balanced => balanced,
+        SpeechModelTier.accurate => accurate,
+      };
 
   /// Recommended tier: Balanced, or Fast below 3 GB (and on the minimal device tier, D-40).
   static SpeechModelTier recommendedTier({required int physicalRamBytes, bool minimalDevice = false}) =>
-      (minimalDevice || physicalRamBytes < 3 * _gib) ? SpeechModelTier.fast : SpeechModelTier.balanced;
+      (minimalDevice || !balanced.isAvailableOn(physicalRamBytes)) ? SpeechModelTier.fast : SpeechModelTier.balanced;
 }

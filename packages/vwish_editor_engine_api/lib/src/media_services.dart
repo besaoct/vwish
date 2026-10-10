@@ -10,6 +10,8 @@ import 'package:vwish_editor_core/model.dart';
 import 'engine.dart';
 
 /// Scheduling priority of a thumbnail tile.
+///
+/// See ARCH §12.3, §15.
 enum ThumbPriority {
   /// On screen now.
   visible,
@@ -23,6 +25,8 @@ enum ThumbPriority {
 
 /// One thumbnail strip request: [framesPerTile] frames every [intervalMs] starting at tile
 /// [tileIndex].
+///
+/// See ARCH §12.3, §15.
 @immutable
 final class ThumbnailRequest {
   /// Creates a request.
@@ -55,6 +59,8 @@ final class ThumbnailRequest {
 }
 
 /// A JPEG strip of [frames] frames, each [frameWidthPx] wide.
+///
+/// See ARCH §12.3, §15.
 @immutable
 final class ThumbnailTile {
   /// Creates a tile.
@@ -71,6 +77,8 @@ final class ThumbnailTile {
 }
 
 /// A cancellable thumbnail request.
+///
+/// See ARCH §12.3, §15.
 abstract interface class ThumbnailHandle {
   /// The tile (throws `EngineFailure` on failure, `EngineCancelled` when cancelled).
   Future<ThumbnailTile> get result;
@@ -80,12 +88,16 @@ abstract interface class ThumbnailHandle {
 }
 
 /// Thumbnail strips (disk-cached natively under `<cache>/vwish/editor/thumbs`).
+///
+/// See ARCH §12.3, §15.
 abstract interface class ThumbnailSource {
   /// Requests one tile.
   ThumbnailHandle request(ThumbnailRequest request, {required ThumbPriority priority});
 }
 
 /// Waveform peaks: interleaved int8 (min, max) pairs at [pairsPerSecond] (200).
+///
+/// See ARCH §12.3, §15.
 @immutable
 final class WaveformPeaks {
   /// Creates peaks.
@@ -102,12 +114,16 @@ final class WaveformPeaks {
 }
 
 /// Waveforms (disk-cached natively as `.vwpk`).
+///
+/// See ARCH §12.3, §15.
 abstract interface class WaveformSource {
   /// Peaks of one audio stream.
   MediaJob<WaveformPeaks> peaks(EngineMedia media, {int audioStream = 0});
 }
 
 /// Job scheduling priority (export and interactive jobs pre-empt background jobs).
+///
+/// See ARCH §12.3, §15.
 enum JobPriority {
   /// User is waiting (freeze frame, reverse started from the panel).
   interactive,
@@ -120,6 +136,8 @@ enum JobPriority {
 }
 
 /// A file produced by a job.
+///
+/// See ARCH §12.3, §15.
 @immutable
 final class GeneratedAsset {
   /// Creates the result.
@@ -136,6 +154,8 @@ final class GeneratedAsset {
 }
 
 /// Proxy state of one media file.
+///
+/// See ARCH §12.3, §15.
 enum ProxyStatus {
   /// No proxy and none queued.
   none,
@@ -173,6 +193,8 @@ final class SpeechAudioJobRequest {
 }
 
 /// A speech WAV written by [MediaJobs.extractSpeechAudio].
+///
+/// See ARCH §12.3, §15.
 @immutable
 final class ExtractedSpeechAudio {
   /// Creates the result.
@@ -205,6 +227,8 @@ final class ExtractedSpeechAudio {
 }
 
 /// A running engine job.
+///
+/// See ARCH §12.3, §15.
 abstract interface class MediaJob<T> {
   /// Job id.
   String get id;
@@ -223,6 +247,8 @@ abstract interface class MediaJob<T> {
 }
 
 /// Background media jobs (proxies, reverse renditions, freeze stills, speech audio).
+///
+/// See ARCH §12.3, §15.
 abstract interface class MediaJobs {
   /// 540p proxy with the same timestamps (`<cache>/vwish/editor/proxies/<quickHash>-540.mp4`).
   MediaJob<GeneratedAsset> proxy(EngineMedia media);

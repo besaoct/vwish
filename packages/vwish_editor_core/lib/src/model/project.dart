@@ -51,6 +51,13 @@ final class FromPlayerOrigin extends ProjectOrigin {
   /// File name shown in diagnostics (never a path).
   final String displayName;
 
+  /// A copy with the given fields replaced.
+  FromPlayerOrigin copyWith({String? quickHash, int? sizeBytes, String? displayName}) => FromPlayerOrigin(
+        quickHash: quickHash ?? this.quickHash,
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+        displayName: displayName ?? this.displayName,
+      );
+
   @override
   bool operator ==(Object other) =>
       other is FromPlayerOrigin &&
@@ -141,6 +148,9 @@ final class EditProject {
 
   /// Incremented on every persisted change (commit, pool change, view change).
   final int docRevision;
+
+  /// User-visible project name (ux.md §2.1).
+  String get name => meta.name;
 
   /// Project settings.
   ProjectSettings get settings => timeline.settings;

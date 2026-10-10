@@ -10,8 +10,16 @@ void main() {
     engine.exporter.records
       ..add(const ExportInterrupted('job-a'))
       ..add(const ExportCompletedWhileDetached('job-b', savedToGallery: true));
-    expect(await checkEngineContract(engine), isEmpty);
+    expect(await checkEngineContract(engine, exportOutputPath: '/fake/cache/vwish/editor/work/export-kit.mp4'), isEmpty);
     expect(await engine.exporter.activeJobs(), isEmpty);
+  });
+
+  test('the kit passes without the export reattach check too', () async {
+    expect(await checkEngineContract(FakeEditorEngine()), isEmpty);
+  });
+
+  test('FakeEditorEngine without plan validation passes the kit', () async {
+    expect(await checkEngineContract(FakeEditorEngine(validatePlans: false)), isEmpty);
   });
 
   test('unsupported capabilities short-circuit the kit', () async {
@@ -24,6 +32,7 @@ void main() {
       expect(EngineErrorCode.fromName(c.name), c);
     }
     expect(EngineErrorCode.fromName('nope'), EngineErrorCode.internal);
+    expect(EngineErrorCode.fromName(null), EngineErrorCode.internal);
     expect(EngineFailure.of(EngineErrorCode.cancelled), isA<EngineCancelled>());
     expect(EngineFailure.of(EngineErrorCode.diskFull), isA<EngineError>());
   });
@@ -40,8 +49,13 @@ void main() {
   test('export start records whenDetached and resumable jobs resume', () async {
     final engine = FakeEditorEngine();
     final plan = contractKitPlan();
-    await engine.exporter.start(plan, const EncodeSettings(width: 1280, height: 720, fps: 30, videoBitrate: 5000000),
-        outputPath: '/fake/cache/vwish/editor/work/export-1.mp4', title: 'Trip', whenDetached: ExportDetachedHandoff.keepForLater);
+    await engine.exporter.start(
+      plan,
+      const EncodeSettings(width: 1280, height: 720, fps: 30, videoBitrate: 5000000),
+      outputPath: '/fake/cache/vwish/editor/work/export-1.mp4',
+      title: 'Trip',
+      whenDetached: ExportDetachedHandoff.keepForLater,
+    );
     expect(engine.exporter.lastWhenDetached, ExportDetachedHandoff.keepForLater);
     engine.exporter.records.add(const ExportResumable('job-r', doneFraction: 0.4));
     final job = await engine.exporter.resume('job-r');

@@ -286,6 +286,9 @@ sealed class LookRef {
 
   /// Mix amount in [0, 1].
   final double intensity;
+
+  /// The same look with a different mix amount.
+  LookRef withIntensity(double intensity);
 }
 
 /// A bundled look (`assets/looks/<presetId>.vlut`, ARCH §10.2).
@@ -295,6 +298,13 @@ final class BuiltinLook extends LookRef {
 
   /// Stable preset id, e.g. `tealOrange`.
   final String presetId;
+
+  /// A copy with the given fields replaced.
+  BuiltinLook copyWith({String? presetId, double? intensity}) =>
+      BuiltinLook(presetId ?? this.presetId, intensity: intensity ?? this.intensity);
+
+  @override
+  BuiltinLook withIntensity(double intensity) => BuiltinLook(presetId, intensity: intensity);
 
   @override
   bool operator ==(Object other) =>
@@ -311,6 +321,13 @@ final class ImportedLut extends LookRef {
 
   /// Pool asset of kind lut.
   final MediaId lut;
+
+  /// A copy with the given fields replaced.
+  ImportedLut copyWith({MediaId? lut, double? intensity}) =>
+      ImportedLut(lut ?? this.lut, intensity: intensity ?? this.intensity);
+
+  @override
+  ImportedLut withIntensity(double intensity) => ImportedLut(lut, intensity: intensity);
 
   @override
   bool operator ==(Object other) => other is ImportedLut && other.lut == lut && other.intensity == intensity;

@@ -6,6 +6,8 @@ import 'package:meta/meta.dart';
 import 'package:vwish_editor_core/model.dart';
 
 /// Microphone permission state.
+///
+/// See ARCH §12.4, §15.
 enum MicPermission {
   /// Not asked yet.
   undetermined,
@@ -21,6 +23,8 @@ enum MicPermission {
 }
 
 /// Why a recording stopped by itself (the file is kept).
+///
+/// See ARCH §12.4, §15.
 enum RecordingInterruption {
   /// Audio session interruption (call, Siri, focus loss).
   interrupted,
@@ -33,6 +37,8 @@ enum RecordingInterruption {
 }
 
 /// A finished recording.
+///
+/// See ARCH §12.4, §15.
 @immutable
 final class RecordedAsset {
   /// Creates the result.
@@ -49,6 +55,8 @@ final class RecordedAsset {
 }
 
 /// A recording in progress.
+///
+/// See ARCH §12.4, §15.
 abstract interface class RecordingSession {
   /// Input level 0..1 at 20 Hz.
   Stream<double> get levels;
@@ -64,6 +72,8 @@ abstract interface class RecordingSession {
 }
 
 /// Microphone recorder (`EditorEngine.voiceRecorder` is null when unsupported).
+///
+/// See ARCH §12.4, §15.
 abstract interface class VoiceRecorder {
   /// Current permission.
   Future<MicPermission> permission();

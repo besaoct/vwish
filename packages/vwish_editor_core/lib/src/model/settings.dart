@@ -39,6 +39,9 @@ final class AspectRatio {
   /// Height term.
   final int h;
 
+  /// A copy with the given terms.
+  AspectRatio copyWith({int? w, int? h}) => AspectRatio(w ?? this.w, h ?? this.h);
+
   /// `w / h`.
   double get value => w / h;
 
@@ -115,6 +118,9 @@ final class SolidBackground extends BackgroundSpec {
   /// ARGB colour (alpha is ignored; the canvas is opaque).
   final int color;
 
+  /// A copy with the given colour.
+  SolidBackground copyWith({int? color}) => SolidBackground(color ?? this.color);
+
   @override
   bool operator ==(Object other) => other is SolidBackground && other.color == color;
 
@@ -129,6 +135,9 @@ final class BlurOfMainBackground extends BackgroundSpec {
 
   /// Blur amount in [0, 1] (same scale as `DetailFx.blur`).
   final double radius;
+
+  /// A copy with the given radius.
+  BlurOfMainBackground copyWith({double? radius}) => BlurOfMainBackground(radius ?? this.radius);
 
   @override
   bool operator ==(Object other) => other is BlurOfMainBackground && other.radius == radius;

@@ -1,93 +1,167 @@
-// OWNER: ENG-01 (then frozen by ENG-06)
+// OWNER: ENG-01 (then ENG-06, which freezes it after the spikes, D-42)
 //
-// Scaffold placeholder of the Pigeon-backed engine (ARCH §12, §12.6). ENG-01 replaces the
-// bootstrap channel with the generated Pigeon host APIs (EngineHostApi, PreviewHostApi,
-// JobsHostApi, ExportHostApi incl. start(…, whenDetached)/resume/consumeJobRecord,
-// RecorderHostApi, PlatformHostApi, EngineEventsApi) and wires the mobile_* services
-// (ENG-02/03/04). Until then every call fails with `notSupportedOnDevice` and capabilities()
-// reports `engine_not_available`, so the editor shows its unsupported state instead of crashing.
+// The iOS + Android editor engine over the Pigeon surface (ARCH §12, §12.6). The engine root
+// calls (initialize, capabilities, compatibility, probe, freeBytes, trimCaches, signals) are
+// implemented here; preview sessions (ENG-02), jobs / recorder / platform services / media access
+// (ENG-03) and export (ENG-04) are the mobile_* services, all sharing one [EngineChannels].
+//
+// While the native plugin registers no host API (the M0 placeholders of ENG-07/ENG-08), every
+// call answers `channel-error`, which maps to `notSupportedOnDevice`: capabilities() reports
+// `engine_not_available` and compatibility() `NotEditable('engine_not_available')`, so the editor
+// shows its unsupported state instead of crashing.
 
-import 'package:flutter/services.dart';
-import 'package:meta/meta.dart';
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'package:flutter/services.dart' show BinaryMessenger;
 import 'package:vwish_editor_engine_api/vwish_editor_engine_api.dart';
 
-import 'error_mapper.dart';
+import 'event_router.dart';
+import 'mobile_export.dart';
+import 'mobile_jobs.dart';
+import 'mobile_media_access.dart';
+import 'mobile_platform_services.dart';
+import 'mobile_preview_session.dart';
+import 'mobile_recorder.dart';
+import 'pigeon/conversions.dart';
+import 'pigeon/engine_api.g.dart';
+import 'pigeon/engine_channels.dart';
 
-/// The iOS + Android editor engine.
+/// The iOS + Android editor engine. Only the app root constructs it (ARCH §4.1).
+///
+/// See ARCH §12.1, §12.6, BUILD_PLAN ENG-01.
 final class MobileEditorEngine implements EditorEngine {
-  /// Creates the engine for [config]. [channel] is for tests.
-  MobileEditorEngine({required this.config, @visibleForTesting MethodChannel? channel}) : _channel = channel ?? bootstrapChannel;
+  /// Creates the engine for [config]. The other parameters are for tests: [binaryMessenger] and
+  /// [messageChannelSuffix] reach every Pigeon host API, [events] replaces the native event
+  /// stream, [now] the event router clock.
+  MobileEditorEngine({
+    required EditorEngineConfig config,
+    @visibleForTesting BinaryMessenger? binaryMessenger,
+    @visibleForTesting String messageChannelSuffix = '',
+    @visibleForTesting Stream<EngineEventMsg> Function()? events,
+    @visibleForTesting EventRateLimits limits = const EventRateLimits(),
+    @visibleForTesting Duration Function()? now,
+  }) : this.withChannels(
+          EngineChannels(
+            config: config,
+            binaryMessenger: binaryMessenger,
+            messageChannelSuffix: messageChannelSuffix,
+            events: events,
+            limits: limits,
+            now: now,
+          ),
+        );
 
-  /// Channel registered by the placeholder native plugins (removed by ENG-01's Pigeon surface).
-  static const MethodChannel bootstrapChannel = MethodChannel('com.vecvel.vwish.editor.engine/bootstrap');
+  /// Creates the engine over existing [channels] (tests of the mobile services).
+  @visibleForTesting
+  MobileEditorEngine.withChannels(this.channels);
+
+  /// Host APIs, event router and roots shared with the mobile services.
+  @visibleForTesting
+  final EngineChannels channels;
 
   /// Engine directories.
-  final EditorEngineConfig config;
+  EditorEngineConfig get config => channels.config;
 
-  final MethodChannel _channel;
   EditorCapabilities? _caps;
+  Future<EditorCapabilities>? _capsLoading;
 
-  Never _unavailable(String what) =>
-      throw EngineFailure.of(EngineErrorCode.notSupportedOnDevice, debugDetail: '$what: the native editor engine is not built yet');
+  late final ThumbnailSource _thumbnails = MobileThumbnailSource(channels);
+  late final WaveformSource _waveforms = MobileWaveformSource(channels);
+  late final MediaJobs _jobs = MobileMediaJobs(channels);
+  late final ExportService _exporter = MobileExportService(channels);
+  late final VoiceRecorder _recorder = MobileVoiceRecorder(channels);
+  late final MediaPicker _picker = MobileMediaPicker(channels);
+  late final FileHandoff _files = MobileFileHandoff(channels);
+  late final MediaAccess _access = MobileMediaAccess(channels);
+  late final BackgroundWorkGuard _background = MobileBackgroundWorkGuard(channels);
+  late final ExternalDropTarget _drops = MobileExternalDropTarget(channels);
+  late final Stream<EngineSignal> _signals = channels.router.signals.map(signalFromMsg).where((s) => s != null).cast<EngineSignal>();
+
+  /// The capabilities once loaded (null before the first [capabilities] call completes).
+  EditorCapabilities? get cachedCapabilities => _caps;
 
   @override
-  Future<EditorCapabilities> capabilities() async {
+  Future<EditorCapabilities> capabilities() {
     final cached = _caps;
-    if (cached != null) return cached;
+    if (cached != null) return Future<EditorCapabilities>.value(cached);
+    return _capsLoading ??= _loadCapabilities().whenComplete(() => _capsLoading = null);
+  }
+
+  Future<EditorCapabilities> _loadCapabilities() async {
     try {
-      await guardEngineCall(() => _channel.invokeMethod<Object?>('capabilities'));
+      final msg = await channels.invoke(channels.engine.capabilities);
+      return _caps = capabilitiesFromMsg(msg);
     } on EngineFailure catch (f) {
       if (f.code != EngineErrorCode.notSupportedOnDevice) rethrow;
+      return _caps = EditorCapabilities.unsupported(UnsupportedReasons.engineNotAvailable);
     }
-    return _caps = EditorCapabilities.unsupported(UnsupportedReasons.engineNotAvailable);
   }
 
   @override
-  Future<EditCompatibility> compatibility(String pathOrUri) async =>
-      const NotEditable('engine_not_available', 'the native editor engine is not built yet');
+  Future<EditCompatibility> compatibility(String pathOrUri) async {
+    try {
+      return compatibilityFromMsg(await channels.invoke(() => channels.engine.compatibility(pathOrUri)));
+    } on EngineFailure catch (f) {
+      if (f.code != EngineErrorCode.notSupportedOnDevice) rethrow;
+      return const NotEditable(UnsupportedReasons.engineNotAvailable, 'the native editor engine is not available');
+    }
+  }
 
   @override
-  Future<MediaProbe> probe(EngineMedia media) async => _unavailable('probe');
+  Future<MediaProbe> probe(EngineMedia media) async => probeFromMsg(await channels.invoke(() => channels.engine.probe(mediaToMsg(media))));
 
   @override
-  Future<PreviewSession> openPreview(PreviewConfig config) async => _unavailable('openPreview');
+  Future<PreviewSession> openPreview(PreviewConfig config) async {
+    final opened = await channels.invoke(() => channels.preview.open(previewConfigToMsg(config)));
+    return MobilePreviewSession(channels: channels, config: config, sessionId: opened.sessionId, textureId: opened.textureId);
+  }
 
   @override
-  ThumbnailSource get thumbnails => _unavailable('thumbnails');
+  ThumbnailSource get thumbnails => _thumbnails;
 
   @override
-  WaveformSource get waveforms => _unavailable('waveforms');
+  WaveformSource get waveforms => _waveforms;
 
   @override
-  MediaJobs get jobs => _unavailable('jobs');
+  MediaJobs get jobs => _jobs;
 
   @override
-  ExportService get exporter => _unavailable('exporter');
+  ExportService get exporter => _exporter;
+
+  /// Null until [capabilities] reported `voiceRecording` (ARCH §12.1).
+  @override
+  VoiceRecorder? get voiceRecorder => (_caps?.voiceRecording ?? false) ? _recorder : null;
 
   @override
-  VoiceRecorder? get voiceRecorder => null;
+  MediaPicker get picker => _picker;
 
   @override
-  MediaPicker get picker => _unavailable('picker');
+  FileHandoff get files => _files;
 
   @override
-  FileHandoff get files => _unavailable('files');
+  MediaAccess get access => _access;
 
   @override
-  MediaAccess get access => _unavailable('access');
+  BackgroundWorkGuard get background => _background;
 
   @override
-  BackgroundWorkGuard get background => _unavailable('background');
+  ExternalDropTarget get drops => _drops;
 
   @override
-  ExternalDropTarget get drops => _unavailable('drops');
+  Future<int> freeBytes(String path) => channels.invoke(() => channels.engine.freeBytes(path));
 
   @override
-  Future<int> freeBytes(String path) async => _unavailable('freeBytes');
+  Stream<EngineSignal> get signals => _signals;
 
+  /// Drops cached data. Without a native engine there is nothing to trim, so
+  /// `notSupportedOnDevice` is ignored; other failures surface as [EngineFailure].
   @override
-  Stream<EngineSignal> get signals => const Stream.empty();
-
-  @override
-  Future<void> trimCaches(CacheTrimLevel level) async {}
+  Future<void> trimCaches(CacheTrimLevel level) async {
+    try {
+      await channels.invoke(() => channels.engine.trimCaches(cacheTrimLevelToMsg(level)));
+    } on EngineFailure catch (f) {
+      if (f.code != EngineErrorCode.notSupportedOnDevice) rethrow;
+    }
+  }
 }

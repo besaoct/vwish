@@ -101,6 +101,16 @@ final class FrameRate {
   /// Frames per second as a double (display only; never use for grid math).
   double get fps => num / den;
 
+  /// Alias of [num] (ux.md §2.1 `FrameRate.numerator`).
+  int get numerator => num;
+
+  /// Alias of [den] (ux.md §2.1 `FrameRate.denominator`).
+  int get denominator => den;
+
+  /// The duration of one frame in whole µs, rounded to nearest (`round(10⁶·den / num)`); display
+  /// and UI nudges only. Grid arithmetic uses [timeOfFrame] (ux.md §2.1 `frameUs`).
+  TimeUs get frameUs => floorDiv(2 * microsPerSecond * den + num, 2 * num);
+
   /// Start time of frame [k] on the plan grid: `ceil(k·10⁶·den / num)`.
   TimeUs timeOfFrame(int k) => ceilDiv(k * microsPerSecond * den, num);
 

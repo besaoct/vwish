@@ -162,11 +162,24 @@ TranscriptionLanguage? languageForWhisperCode(String code) {
   return null;
 }
 
-/// The language for a BCP-47 tag or device locale (`pt-BR` -> Portuguese), or null.
+/// Legacy and regional primary subtags mapped to the whisper code of the same language.
+const Map<String, String> _localeAliases = {
+  'iw': 'he', // legacy Hebrew
+  'in': 'id', // legacy Indonesian
+  'ji': 'yi', // legacy Yiddish
+  'nb': 'no', // Norwegian Bokmal
+  'fil': 'tl', // Filipino
+  'jv': 'jw', // Javanese (whisper still uses its legacy code)
+};
+
+/// The language for a BCP-47 tag or device locale (`pt-BR` -> Portuguese, `zh_Hans_CN` ->
+/// Chinese, legacy `iw` -> Hebrew), or null when whisper does not know the primary language.
 TranscriptionLanguage? languageForLocale(String tag) {
-  final primary = tag.split(RegExp('[-_]')).first.toLowerCase();
+  final primary = tag.trim().split(RegExp('[-_]')).first.toLowerCase();
+  if (primary.isEmpty) return null;
+  final code = _localeAliases[primary] ?? primary;
   for (final l in whisperLanguages) {
-    if (l.bcp47 == primary || l.whisperCode == primary) return l;
+    if (l.whisperCode == code || l.bcp47 == code) return l;
   }
   return null;
 }

@@ -39,6 +39,14 @@ final class BoxStyle {
   /// Corner radius in points.
   final double cornerRadiusPt;
 
+  /// A copy with the given fields replaced.
+  BoxStyle copyWith({int? color, double? opacity, double? paddingPt, double? cornerRadiusPt}) => BoxStyle(
+        color: color ?? this.color,
+        opacity: opacity ?? this.opacity,
+        paddingPt: paddingPt ?? this.paddingPt,
+        cornerRadiusPt: cornerRadiusPt ?? this.cornerRadiusPt,
+      );
+
   @override
   bool operator ==(Object other) =>
       other is BoxStyle &&
@@ -62,6 +70,10 @@ final class StrokeStyle {
 
   /// Width in points, [0, 20].
   final double widthPt;
+
+  /// A copy with the given fields replaced.
+  StrokeStyle copyWith({int? color, double? widthPt}) =>
+      StrokeStyle(color: color ?? this.color, widthPt: widthPt ?? this.widthPt);
 
   @override
   bool operator ==(Object other) => other is StrokeStyle && other.color == color && other.widthPt == widthPt;
@@ -96,6 +108,16 @@ final class ShadowStyle {
 
   /// Offset direction in degrees (90 = straight down).
   final double angleDeg;
+
+  /// A copy with the given fields replaced.
+  ShadowStyle copyWith({int? color, double? opacity, double? blurPt, double? distancePt, double? angleDeg}) =>
+      ShadowStyle(
+        color: color ?? this.color,
+        opacity: opacity ?? this.opacity,
+        blurPt: blurPt ?? this.blurPt,
+        distancePt: distancePt ?? this.distancePt,
+        angleDeg: angleDeg ?? this.angleDeg,
+      );
 
   @override
   bool operator ==(Object other) =>

@@ -45,6 +45,9 @@ android {
         getByName("main") {
             java.srcDirs("src/main/kotlin")
         }
+        getByName("test") {
+            java.srcDirs("src/test/kotlin")
+        }
     }
 
     defaultConfig {
@@ -56,4 +59,9 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+dependencies {
+    // AI-06: JVM unit tests of the pure device helpers (thermal mapping, cpuinfo parsing, trim levels).
+    testImplementation("junit:junit:4.13.2")
 }

@@ -24,6 +24,19 @@ final class ConsentDisclosure {
         includesVad: includesVad,
       );
 
+  /// A disclosure with arbitrary fields, to test how a downloader reacts to one that no longer
+  /// equals the catalog (a changed catalog entry, a tampered value). Production code uses [of].
+  @visibleForTesting
+  const ConsentDisclosure.forTesting({
+    required this.modelId,
+    required this.fileName,
+    required this.host,
+    required this.cdnHost,
+    required this.sha256,
+    required this.totalBytes,
+    required this.includesVad,
+  });
+
   const ConsentDisclosure._({
     required this.modelId,
     required this.fileName,
@@ -54,6 +67,13 @@ final class ConsentDisclosure {
 
   /// Whether the VAD model is part of this download.
   final bool includesVad;
+
+  /// Whether this is exactly what the catalog entry [modelId] would disclose today. The downloader
+  /// refuses anything else with `ModelDownloadFailureKind.consentMismatch` before the first request.
+  bool get matchesCatalog {
+    final spec = SpeechModelCatalog.byId(modelId);
+    return spec != null && this == ConsentDisclosure.of(spec, includesVad: includesVad);
+  }
 
   @override
   bool operator ==(Object other) =>

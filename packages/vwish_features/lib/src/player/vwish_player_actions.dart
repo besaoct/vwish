@@ -1,7 +1,3 @@
-import 'dart:async';
-
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:vwish_domain/vwish_domain.dart';
@@ -9,6 +5,7 @@ import 'package:vwish_platform/vwish_platform.dart';
 import 'package:vwish_ui_kit/vwish_ui_kit.dart';
 import '../controllers/providers.dart';
 import '../library/media_picker.dart';
+import 'screen_orientation_policy.dart';
 
 /// Height the bottom control bar occupies above the safe area, plus a small gap.
 double playerControlsReserve(BuildContext context) => context.isTouchPlatform ? 118 : 98;
@@ -87,79 +84,24 @@ VwishToastKind playerErrorToastKind(PlayerError error) => switch (error) {
       _ => VwishToastKind.error,
     };
 
-/// Orientation policy: phones keep the library upright, the player follows the device (or the
-/// orientation the rotate button locked), and tablets rotate freely everywhere.
+/// Orientation policy for the player: phones keep the library upright, the player follows the
+/// device (or the orientation the rotate button locked), and tablets rotate freely everywhere.
+///
+/// A thin wrapper over [ScreenOrientationPolicy] that keeps the player's call sites unchanged:
+/// each player screen is an owner in the policy's stack (mode [OrientationMode.followDevice]), so
+/// an editor opened over it can enter and release without leaving the player without an owner.
 abstract final class PlayerOrientation {
-  static Orientation? _forced;
+  static Future<void> applyAppDefault() => ScreenOrientationPolicy.applyAppDefault();
 
-  /// The player screen currently in charge. A player that is still closing must not undo the
-  /// orientation of one opened after it.
-  static Object? _owner;
-
-  static StreamSubscription<DeviceOrientation>? _deviceSub;
-  static DeviceOrientation _held = DeviceOrientation.portraitUp;
-
-  static bool get _isPhone {
-    final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    return (view.physicalSize / view.devicePixelRatio).shortestSide < 600;
-  }
-
-  /// On iPhone the player follows how the phone is held, one orientation at a time. Handing iOS
-  /// several orientations at once makes it flash through the last landscape before settling.
-  static bool get _followsDevice => defaultTargetPlatform == TargetPlatform.iOS && _isPhone;
-
-  static bool _isLandscape(DeviceOrientation o) =>
-      o == DeviceOrientation.landscapeLeft || o == DeviceOrientation.landscapeRight;
-
-  static Future<void> applyAppDefault() =>
-      SystemChrome.setPreferredOrientations(_isPhone ? const [DeviceOrientation.portraitUp] : const []);
-
-  static Future<void> enter(Object owner) {
-    _owner = owner;
-    _forced = null;
-    if (_followsDevice) {
-      // Stays as it is (upright) until the stream reports the phone is held otherwise.
-      _deviceSub ??= PlatformBridge.deviceOrientations.listen(_onDeviceOrientation, onError: (Object _) {});
-      return Future<void>.value();
-    }
-    return SystemChrome.setPreferredOrientations(const []);
-  }
-
-  static void _onDeviceOrientation(DeviceOrientation held) {
-    // iPhones never show the interface upside down.
-    if (held == DeviceOrientation.portraitDown || _owner == null) return;
-    _held = held;
-    final forced = _forced;
-    if (forced != null) {
-      // The rotate button's choice holds until the phone is turned to match it.
-      if (_isLandscape(held) != (forced == Orientation.landscape)) return;
-      _forced = null;
-    }
-    SystemChrome.setPreferredOrientations([held]);
-  }
+  static Future<void> enter(Object owner) => ScreenOrientationPolicy.enter(owner, OrientationMode.followDevice);
 
   /// Flips between portrait and landscape and holds it there regardless of how the device is held.
   static Future<void> toggle(Orientation current) {
-    final next = (_forced ?? current) == Orientation.landscape ? Orientation.portrait : Orientation.landscape;
-    _forced = next;
-    if (next == Orientation.portrait) {
-      return SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
-    }
-    return SystemChrome.setPreferredOrientations(
-      _followsDevice
-          ? [_isLandscape(_held) ? _held : DeviceOrientation.landscapeLeft]
-          : const [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight],
-    );
+    final owner = ScreenOrientationPolicy.topOwner;
+    return owner == null ? Future<void>.value() : ScreenOrientationPolicy.toggle(owner, current);
   }
 
   /// Restoring the app default also rotates a phone back upright, however the player was held.
-  /// Does nothing once [owner] has released or another player has entered.
-  static Future<void> release(Object owner) {
-    if (!identical(_owner, owner)) return Future<void>.value();
-    _owner = null;
-    _forced = null;
-    _deviceSub?.cancel();
-    _deviceSub = null;
-    return applyAppDefault();
-  }
+  /// Does nothing once [owner] has released.
+  static Future<void> release(Object owner) => ScreenOrientationPolicy.release(owner);
 }

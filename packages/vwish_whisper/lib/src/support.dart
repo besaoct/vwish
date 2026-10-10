@@ -6,6 +6,8 @@
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:meta/meta.dart';
 
+import 'device/device_profile.dart';
+
 /// Why speech recognition is unavailable.
 enum WhisperUnsupportedReason {
   /// Desktop or web (the editor is iOS/Android only in v1).
@@ -26,16 +28,34 @@ enum WhisperUnsupportedReason {
 sealed class WhisperSupport {
   const WhisperSupport();
 
-  /// Platform-level support, without loading the library: iOS and Android (arm64-v8a, x86_64)
-  /// are candidates; everything else is unsupported. [abi] is Android's primary ABI when known.
-  static WhisperSupport evaluate({TargetPlatform? platform, bool isWeb = kIsWeb, String? abi}) {
+  /// Lowest iOS major version (the deployment target, D-29).
+  static const int minIosMajor = 15;
+
+  /// Lowest Android API level (the editor gate, ARCH §3.2).
+  static const int minAndroidApi = 29;
+
+  /// Platform-level support, without loading the library: iOS >= [minIosMajor] and Android
+  /// >= [minAndroidApi] on arm64-v8a or x86_64 are candidates; everything else is unsupported.
+  /// [abi] is Android's primary ABI, [osMajor] the iOS major version and [apiLevel] the Android
+  /// API level, each when known (unknown never rejects).
+  static WhisperSupport evaluate({
+    TargetPlatform? platform,
+    bool isWeb = kIsWeb,
+    String? abi,
+    int? osMajor,
+    int? apiLevel,
+  }) {
     if (isWeb) return const WhisperUnsupported(WhisperUnsupportedReason.platform);
     switch (platform ?? defaultTargetPlatform) {
       case TargetPlatform.iOS:
+        if (osMajor != null && osMajor < minIosMajor) return const WhisperUnsupported(WhisperUnsupportedReason.osVersion);
         return const WhisperSupported();
       case TargetPlatform.android:
         if (abi != null && abi != 'arm64-v8a' && abi != 'x86_64') {
           return const WhisperUnsupported(WhisperUnsupportedReason.abi);
+        }
+        if (apiLevel != null && apiLevel > 0 && apiLevel < minAndroidApi) {
+          return const WhisperUnsupported(WhisperUnsupportedReason.osVersion);
         }
         return const WhisperSupported();
       case TargetPlatform.macOS:
@@ -44,6 +64,28 @@ sealed class WhisperSupport {
       case TargetPlatform.fuchsia:
         return const WhisperUnsupported(WhisperUnsupportedReason.platform);
     }
+  }
+
+  /// Support from a native [WhisperDeviceProfile]: a 32-bit process is `abi`, an OS below the
+  /// minimum is `osVersion`. A profile that does not name iOS or Android (plugin unavailable)
+  /// falls back to [evaluate] with the host platform.
+  static WhisperSupport fromProfile(WhisperDeviceProfile profile, {bool isWeb = kIsWeb}) {
+    switch (profile.os) {
+      case 'ios':
+        return evaluate(
+          platform: TargetPlatform.iOS,
+          isWeb: isWeb,
+          osMajor: int.tryParse(profile.osVersion.split('.').first),
+        );
+      case 'android':
+        return evaluate(
+          platform: TargetPlatform.android,
+          isWeb: isWeb,
+          abi: profile.is64Bit ? null : 'armeabi-v7a',
+          apiLevel: profile.apiLevel,
+        );
+    }
+    return evaluate(isWeb: isWeb);
   }
 }
 

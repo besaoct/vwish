@@ -53,6 +53,13 @@ final class ReversedSpec extends DerivedSpec {
   /// `quickHash` of the source (so the spec hash survives relink to the same content).
   final String sourceQuickHash;
 
+  /// A copy with the given fields replaced.
+  ReversedSpec copyWith({MediaId? media, TimeRange? range, String? sourceQuickHash}) => ReversedSpec(
+        media ?? this.media,
+        range ?? this.range,
+        sourceQuickHash: sourceQuickHash ?? this.sourceQuickHash,
+      );
+
   @override
   String get specHash =>
       sha1.convert(utf8.encode('reverse:$sourceQuickHash:${range.start}:${range.end}')).toString();
@@ -78,6 +85,13 @@ final class StillSpec extends DerivedSpec {
 
   /// `quickHash` of the source.
   final String sourceQuickHash;
+
+  /// A copy with the given fields replaced.
+  StillSpec copyWith({MediaId? media, TimeUs? sourceTime, String? sourceQuickHash}) => StillSpec(
+        media ?? this.media,
+        sourceTime ?? this.sourceTime,
+        sourceQuickHash: sourceQuickHash ?? this.sourceQuickHash,
+      );
 
   @override
   String get specHash => sha1.convert(utf8.encode('still:$sourceQuickHash:$sourceTime')).toString();
@@ -119,6 +133,9 @@ final class PendingStatus extends AssetStatus {
   /// Engine job id.
   final String jobId;
 
+  /// A copy with the given job id.
+  PendingStatus copyWith({String? jobId}) => PendingStatus(jobId ?? this.jobId);
+
   @override
   bool operator ==(Object other) => other is PendingStatus && other.jobId == jobId;
 
@@ -133,6 +150,9 @@ final class FailedStatus extends AssetStatus {
 
   /// Machine-readable reason (an `EngineErrorCode` name).
   final String reason;
+
+  /// A copy with the given reason.
+  FailedStatus copyWith({String? reason}) => FailedStatus(reason ?? this.reason);
 
   @override
   bool operator ==(Object other) => other is FailedStatus && other.reason == reason;
@@ -211,30 +231,34 @@ final class MediaAsset {
   /// When it was imported (UTC).
   final DateTime addedAt;
 
-  /// A copy with the given fields replaced.
+  /// A copy with the given fields replaced; pass `derived: null` to clear it.
   MediaAsset copyWith({
+    MediaId? id,
+    MediaKind? kind,
     String? displayName,
     MediaLocator? locator,
     MediaOwnership? ownership,
     MediaFingerprint? fingerprint,
     MediaProbe? probe,
+    MediaOrigin? origin,
     Object? derived = _keep,
     AssetStatus? status,
     ProxyState? proxy,
+    DateTime? addedAt,
   }) =>
       MediaAsset(
-        id: id,
-        kind: kind,
+        id: id ?? this.id,
+        kind: kind ?? this.kind,
         displayName: displayName ?? this.displayName,
         locator: locator ?? this.locator,
         ownership: ownership ?? this.ownership,
         fingerprint: fingerprint ?? this.fingerprint,
         probe: probe ?? this.probe,
-        origin: origin,
+        origin: origin ?? this.origin,
         derived: identical(derived, _keep) ? this.derived : derived as DerivedSpec?,
         status: status ?? this.status,
         proxy: proxy ?? this.proxy,
-        addedAt: addedAt,
+        addedAt: addedAt ?? this.addedAt,
       );
 
   @override

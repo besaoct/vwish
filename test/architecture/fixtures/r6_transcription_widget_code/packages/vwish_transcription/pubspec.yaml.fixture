@@ -1,0 +1,4 @@
+name: vwish_transcription
+dependencies:
+  flutter:
+    sdk: flutter

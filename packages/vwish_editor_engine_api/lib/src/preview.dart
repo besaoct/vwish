@@ -21,6 +21,8 @@ import 'engine.dart';
 import 'failures.dart';
 
 /// Preview render quality. `auto` lets the engine's quality governor step down and up.
+///
+/// See ARCH §12.2.
 enum PreviewQuality {
   /// Governor-controlled.
   auto,
@@ -36,6 +38,8 @@ enum PreviewQuality {
 }
 
 /// How to open a preview session.
+///
+/// See ARCH §12.2.
 @immutable
 final class PreviewConfig {
   /// Creates a config.
@@ -64,6 +68,8 @@ final class PreviewConfig {
 }
 
 /// Seek precision.
+///
+/// See ARCH §12.2.
 enum SeekKind {
   /// Frame-exact; completes when the exact frame is displayed.
   exact,
@@ -73,6 +79,8 @@ enum SeekKind {
 }
 
 /// Special preview rendering modes (crop and chroma panels).
+///
+/// See ARCH §12.2.
 @immutable
 sealed class PreviewEditingMode {
   const PreviewEditingMode();
@@ -82,12 +90,16 @@ sealed class PreviewEditingMode {
 }
 
 /// Normal rendering.
+///
+/// See ARCH §12.2.
 final class NormalPreviewMode extends PreviewEditingMode {
   /// Creates the mode.
   const NormalPreviewMode();
 }
 
 /// Shows the whole uncropped source of [item] for crop editing.
+///
+/// See ARCH §12.2.
 final class CropSourceMode extends PreviewEditingMode {
   /// Creates the mode.
   const CropSourceMode(this.item);
@@ -97,6 +109,8 @@ final class CropSourceMode extends PreviewEditingMode {
 }
 
 /// Shows the chroma-key matte of [item].
+///
+/// See ARCH §12.2.
 final class MatteMode extends PreviewEditingMode {
   /// Creates the mode.
   const MatteMode(this.item);
@@ -106,30 +120,40 @@ final class MatteMode extends PreviewEditingMode {
 }
 
 /// Preview lifecycle events.
+///
+/// See ARCH §12.2.
 @immutable
 sealed class PreviewEvent {
   const PreviewEvent();
 }
 
 /// The first frame of the session is on screen.
+///
+/// See ARCH §12.2.
 final class PreviewFirstFrame extends PreviewEvent {
   /// Creates the event.
   const PreviewFirstFrame();
 }
 
 /// Playback stalled (decoder starvation).
+///
+/// See ARCH §12.2.
 final class PreviewStalled extends PreviewEvent {
   /// Creates the event.
   const PreviewStalled();
 }
 
 /// Playback recovered after a stall or surface loss.
+///
+/// See ARCH §12.2.
 final class PreviewRecovered extends PreviewEvent {
   /// Creates the event.
   const PreviewRecovered();
 }
 
 /// The quality governor stepped down to [quality].
+///
+/// See ARCH §12.2.
 final class PreviewDegraded extends PreviewEvent {
   /// Creates the event.
   const PreviewDegraded(this.quality);
@@ -139,12 +163,16 @@ final class PreviewDegraded extends PreviewEvent {
 }
 
 /// The texture surface was lost (auto-recovered by the engine).
+///
+/// See ARCH §12.2.
 final class PreviewSurfaceLost extends PreviewEvent {
   /// Creates the event.
   const PreviewSurfaceLost();
 }
 
 /// The session failed.
+///
+/// See ARCH §12.2.
 final class PreviewFailedEvent extends PreviewEvent {
   /// Creates the event.
   const PreviewFailedEvent(this.failure);
@@ -154,6 +182,8 @@ final class PreviewFailedEvent extends PreviewEvent {
 }
 
 /// One clock sample (state changes + 10 Hz while playing; the UI extrapolates per vsync).
+///
+/// See ARCH §12.2.
 @immutable
 final class PreviewClock {
   /// Creates a sample.
@@ -173,6 +203,8 @@ final class PreviewClock {
 }
 
 /// Acknowledgement of a seek.
+///
+/// See ARCH §12.2.
 @immutable
 final class SeekAck {
   /// Creates an ack.
@@ -192,6 +224,8 @@ final class SeekAck {
 }
 
 /// Acknowledgement of a plan or patch.
+///
+/// See ARCH §12.2.
 @immutable
 final class PlanAck {
   /// Creates an ack.
@@ -208,6 +242,8 @@ final class PlanAck {
 }
 
 /// A look to render as a still for the Filters panel.
+///
+/// See ARCH §12.2.
 @immutable
 final class LookSpec {
   /// Creates a look spec.
@@ -227,6 +263,8 @@ final class LookSpec {
 }
 
 /// One live preview bound to a Flutter texture.
+///
+/// See ARCH §12.2, §12.7, §13.
 abstract interface class PreviewSession {
   /// Flutter texture id (may back two `Texture` widgets: editor and fullscreen).
   int get textureId;

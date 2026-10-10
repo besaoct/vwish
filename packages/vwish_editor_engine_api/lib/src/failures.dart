@@ -5,6 +5,8 @@
 
 /// Error codes shared by the Dart engine, the Pigeon glue and both native engines
 /// (`FlutterError.code == EngineErrorCode.name`).
+///
+/// See ARCH §12.5, §19.
 enum EngineErrorCode {
   /// The media file is missing or inaccessible.
   mediaOffline,
@@ -74,6 +76,8 @@ enum EngineErrorCode {
 
 /// A typed engine failure. Sealed: [EngineError] for failures, [EngineCancelled] for user
 /// cancellation (which the UI does not report as a failure).
+///
+/// See ARCH §12.5, §19.
 sealed class EngineFailure implements Exception {
   const EngineFailure({required this.code, this.debugDetail = '', this.itemId, this.mediaFingerprint, this.retryable = false});
 
@@ -109,6 +113,8 @@ sealed class EngineFailure implements Exception {
 }
 
 /// Any engine failure other than cancellation.
+///
+/// See ARCH §12.5, §19.
 final class EngineError extends EngineFailure {
   /// Creates an error.
   const EngineError(EngineErrorCode code, {super.debugDetail, super.itemId, super.mediaFingerprint, super.retryable})
@@ -117,6 +123,8 @@ final class EngineError extends EngineFailure {
 }
 
 /// The user cancelled the operation.
+///
+/// See ARCH §12.5, §19.
 final class EngineCancelled extends EngineFailure {
   /// Creates the cancellation.
   const EngineCancelled({super.debugDetail, super.itemId}) : super(code: EngineErrorCode.cancelled);

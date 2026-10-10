@@ -1,7 +1,8 @@
 // OWNER: ENG-01
 //
-// iOS + Android implementation of the editor engine contract. Only the app root constructs
-// [MobileEditorEngine] (ARCH §4.1).
+// iOS + Android implementation of the editor engine contract (ARCH §4.4, §12). Only the app root
+// constructs [MobileEditorEngine] (ARCH §4.1); everything else talks to `EditorEngine` from
+// vwish_editor_engine_api.
 
 library;
 

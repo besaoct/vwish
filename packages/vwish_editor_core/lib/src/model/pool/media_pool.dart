@@ -23,6 +23,15 @@ final class MediaPool {
   /// Assets by id.
   final Map<MediaId, MediaAsset> assets;
 
+  /// Number of assets.
+  int get length => assets.length;
+
+  /// Whether the pool has no assets.
+  bool get isEmpty => assets.isEmpty;
+
+  /// A pool with [assets] (default: this pool's assets).
+  MediaPool copyWith({Map<MediaId, MediaAsset>? assets}) => assets == null ? this : MediaPool(assets);
+
   /// The asset [id], if present.
   MediaAsset? operator [](MediaId id) => assets[id];
 
@@ -57,6 +66,16 @@ final class AddAssets extends PoolChange {
 
   /// Assets to add.
   final List<MediaAsset> assets;
+
+  /// A copy with the given assets.
+  AddAssets copyWith({List<MediaAsset>? assets}) => AddAssets(assets ?? this.assets);
+
+  @override
+  bool operator ==(Object other) =>
+      other is AddAssets && const ListEquality<MediaAsset>().equals(other.assets, assets);
+
+  @override
+  int get hashCode => Object.hashAll(assets);
 }
 
 /// Replaces one asset's probe, proxy or status (engine job results).
@@ -66,6 +85,15 @@ final class UpdateAsset extends PoolChange {
 
   /// The updated asset (same id).
   final MediaAsset asset;
+
+  /// A copy with the given asset.
+  UpdateAsset copyWith({MediaAsset? asset}) => UpdateAsset(asset ?? this.asset);
+
+  @override
+  bool operator ==(Object other) => other is UpdateAsset && other.asset == asset;
+
+  @override
+  int get hashCode => asset.hashCode;
 }
 
 /// An undoable pool edit.
@@ -85,8 +113,18 @@ final class RelinkAssets extends PoolEdit {
   /// New asset values by id.
   final Map<MediaId, MediaAsset> replacements;
 
+  /// A copy with the given replacements.
+  RelinkAssets copyWith({Map<MediaId, MediaAsset>? replacements}) => RelinkAssets(replacements ?? this.replacements);
+
   @override
   String get label => 'Relink media';
+
+  @override
+  bool operator ==(Object other) =>
+      other is RelinkAssets && const MapEquality<MediaId, MediaAsset>().equals(other.replacements, replacements);
+
+  @override
+  int get hashCode => const MapEquality<MediaId, MediaAsset>().hash(replacements);
 }
 
 /// Removes assets that the current timeline does not use.
@@ -97,8 +135,18 @@ final class RemoveAssets extends PoolEdit {
   /// Assets to remove.
   final Set<MediaId> ids;
 
+  /// A copy with the given ids.
+  RemoveAssets copyWith({Set<MediaId>? ids}) => RemoveAssets(ids ?? this.ids);
+
   @override
   String get label => 'Remove from project';
+
+  @override
+  bool operator ==(Object other) =>
+      other is RemoveAssets && const SetEquality<MediaId>().equals(other.ids, ids);
+
+  @override
+  int get hashCode => const SetEquality<MediaId>().hash(ids);
 }
 
 /// Before/after asset values recorded by a history entry for a [PoolEdit] (null = absent).
@@ -114,4 +162,18 @@ final class PoolDelta {
 
   /// Values after the edit.
   final Map<MediaId, MediaAsset?> after;
+
+  /// A copy with the given maps.
+  PoolDelta copyWith({Map<MediaId, MediaAsset?>? before, Map<MediaId, MediaAsset?>? after}) =>
+      PoolDelta(before: before ?? this.before, after: after ?? this.after);
+
+  @override
+  bool operator ==(Object other) =>
+      other is PoolDelta &&
+      const MapEquality<MediaId, MediaAsset?>().equals(other.before, before) &&
+      const MapEquality<MediaId, MediaAsset?>().equals(other.after, after);
+
+  @override
+  int get hashCode =>
+      Object.hash(const MapEquality<MediaId, MediaAsset?>().hash(before), const MapEquality<MediaId, MediaAsset?>().hash(after));
 }

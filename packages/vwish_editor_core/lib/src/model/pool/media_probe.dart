@@ -7,6 +7,8 @@ import 'package:meta/meta.dart';
 
 import '../../time/time.dart';
 
+const Object _keep = Object();
+
 /// Kind of a pool asset.
 enum MediaKind {
   /// Video (may also carry audio).
@@ -67,6 +69,56 @@ final class MediaProbe {
     this.editable = true,
     List<String> issues = const [],
   }) : issues = List.unmodifiable(issues);
+
+  /// A copy with the given fields replaced. Pass `null` explicitly to clear a nullable field
+  /// (`width`, `height`, `nominalFrameRate`, `nominalFps`, `container`, `videoCodec`, `audioCodec`,
+  /// `channels`, `sampleRate`, `bitDepth`).
+  MediaProbe copyWith({
+    MediaKind? kind,
+    TimeUs? duration,
+    bool? hasVideo,
+    bool? hasAudio,
+    Object? width = _keep,
+    Object? height = _keep,
+    int? rotation,
+    Object? nominalFrameRate = _keep,
+    Object? nominalFps = _keep,
+    bool? variableFrameRate,
+    Object? container = _keep,
+    Object? videoCodec = _keep,
+    Object? audioCodec = _keep,
+    int? audioStreams,
+    Object? channels = _keep,
+    Object? sampleRate = _keep,
+    Object? bitDepth = _keep,
+    ColorTransfer? transfer,
+    int? sizeBytes,
+    bool? editable,
+    List<String>? issues,
+  }) =>
+      MediaProbe(
+        kind: kind ?? this.kind,
+        duration: duration ?? this.duration,
+        hasVideo: hasVideo ?? this.hasVideo,
+        hasAudio: hasAudio ?? this.hasAudio,
+        width: identical(width, _keep) ? this.width : width as int?,
+        height: identical(height, _keep) ? this.height : height as int?,
+        rotation: rotation ?? this.rotation,
+        nominalFrameRate: identical(nominalFrameRate, _keep) ? this.nominalFrameRate : nominalFrameRate as FrameRate?,
+        nominalFps: identical(nominalFps, _keep) ? this.nominalFps : nominalFps as double?,
+        variableFrameRate: variableFrameRate ?? this.variableFrameRate,
+        container: identical(container, _keep) ? this.container : container as String?,
+        videoCodec: identical(videoCodec, _keep) ? this.videoCodec : videoCodec as String?,
+        audioCodec: identical(audioCodec, _keep) ? this.audioCodec : audioCodec as String?,
+        audioStreams: audioStreams ?? this.audioStreams,
+        channels: identical(channels, _keep) ? this.channels : channels as int?,
+        sampleRate: identical(sampleRate, _keep) ? this.sampleRate : sampleRate as int?,
+        bitDepth: identical(bitDepth, _keep) ? this.bitDepth : bitDepth as int?,
+        transfer: transfer ?? this.transfer,
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+        editable: editable ?? this.editable,
+        issues: issues ?? this.issues,
+      );
 
   /// Kind.
   final MediaKind kind;

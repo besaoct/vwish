@@ -167,6 +167,9 @@ final class CustomSubtitlePosition extends SubtitlePosition {
   /// 0 = top edge, 1 = bottom edge.
   final double yFraction;
 
+  /// A copy with the given placement.
+  CustomSubtitlePosition copyWith({double? yFraction}) => CustomSubtitlePosition(yFraction ?? this.yFraction);
+
   @override
   bool operator ==(Object other) => other is CustomSubtitlePosition && other.yFraction == yFraction;
 
@@ -210,6 +213,20 @@ final class SegmentationSettings {
   /// Override of reading speed in graphemes per second (0 = default).
   final double maxCharsPerSecond;
 
+  /// A copy with the given fields replaced.
+  SegmentationSettings copyWith({
+    SegmentationPreset? preset,
+    int? maxLines,
+    int? maxCharsPerLine,
+    double? maxCharsPerSecond,
+  }) =>
+      SegmentationSettings(
+        preset: preset ?? this.preset,
+        maxLines: maxLines ?? this.maxLines,
+        maxCharsPerLine: maxCharsPerLine ?? this.maxCharsPerLine,
+        maxCharsPerSecond: maxCharsPerSecond ?? this.maxCharsPerSecond,
+      );
+
   @override
   bool operator ==(Object other) =>
       other is SegmentationSettings &&
@@ -238,6 +255,13 @@ final class CaptionScopeData {
 
   /// Timeline range, or null for the whole timeline.
   final TimeRange? range;
+
+  /// A copy with the given fields replaced; pass `range: null` to clear the range.
+  CaptionScopeData copyWith({List<ItemId>? clips, List<TrackId>? tracks, Object? range = _keep}) => CaptionScopeData(
+        clips: clips ?? this.clips,
+        tracks: tracks ?? this.tracks,
+        range: identical(range, _keep) ? this.range : range as TimeRange?,
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -304,6 +328,36 @@ final class CaptionProvenance {
 
   /// Provenance schema (1).
   final int schema;
+
+  /// A copy with the given fields replaced; pass `languageConfidence: null` to clear it.
+  CaptionProvenance copyWith({
+    String? generator,
+    String? engineVersion,
+    String? modelId,
+    String? modelSha256,
+    String? language,
+    bool? languageDetected,
+    Object? languageConfidence = _keep,
+    SegmentationSettings? segmentation,
+    CaptionScopeData? scope,
+    List<String>? transcriptKeys,
+    DateTime? generatedAt,
+    int? schema,
+  }) =>
+      CaptionProvenance(
+        generator: generator ?? this.generator,
+        engineVersion: engineVersion ?? this.engineVersion,
+        modelId: modelId ?? this.modelId,
+        modelSha256: modelSha256 ?? this.modelSha256,
+        language: language ?? this.language,
+        languageDetected: languageDetected ?? this.languageDetected,
+        languageConfidence: identical(languageConfidence, _keep) ? this.languageConfidence : languageConfidence as double?,
+        segmentation: segmentation ?? this.segmentation,
+        scope: scope ?? this.scope,
+        transcriptKeys: transcriptKeys ?? this.transcriptKeys,
+        generatedAt: generatedAt ?? this.generatedAt,
+        schema: schema ?? this.schema,
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -394,6 +448,9 @@ final class SubtitleCueDraft {
 
   /// Cue text.
   final String text;
+
+  /// A copy with the given fields replaced.
+  SubtitleCueDraft copyWith({TimeRange? range, String? text}) => SubtitleCueDraft(range ?? this.range, text ?? this.text);
 
   @override
   bool operator ==(Object other) => other is SubtitleCueDraft && other.range == range && other.text == text;

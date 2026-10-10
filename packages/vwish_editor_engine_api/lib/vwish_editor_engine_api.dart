@@ -7,8 +7,7 @@ library;
 
 export 'package:vwish_editor_core/model.dart'
     show MediaAccessFailure, MediaAccessFailureKind, MediaAccessPort, MediaProbe, MediaStat, PickedMedia, ResolvedMedia;
-export 'package:vwish_editor_core/plan.dart'
-    show EncodeSettings, ExportContainer, PlanTransient, RenderPlan, RenderPlanPatch, VideoCodec;
+export 'package:vwish_editor_core/plan.dart' show EncodeSettings, ExportContainer, PlanTransient, RenderPlan, RenderPlanPatch, VideoCodec;
 
 export 'src/capabilities.dart';
 export 'src/config.dart';

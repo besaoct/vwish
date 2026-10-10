@@ -568,7 +568,11 @@ abstract final class PlanJson {
     return d;
   }
 
-  static Uint8List _utf8(Map<String, Object?> json) => Uint8List.fromList(utf8.encode(jsonEncode(json)));
+  static Uint8List _utf8(Map<String, Object?> json) {
+    // Straight to UTF-8 (no intermediate String); identical bytes to utf8.encode(jsonEncode(json)).
+    final out = JsonUtf8Encoder().convert(json);
+    return out is Uint8List ? out : Uint8List.fromList(out);
+  }
 
   static Object? _parse(Uint8List bytes) {
     try {

@@ -34,6 +34,9 @@ final class Timeline {
   /// Session-monotonic revision stamp; never reused, even across undo.
   final int revision;
 
+  /// The main track (the first video track), or null when the timeline has no video lane.
+  Track? get mainTrack => TrackOrder.mainTrack(tracks);
+
   /// End of the last item over all tracks (cached).
   late final TimeUs duration = _computeDuration();
 

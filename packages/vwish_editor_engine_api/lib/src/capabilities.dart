@@ -25,6 +25,8 @@ enum DeviceTier {
 }
 
 /// What happens to an export when the app goes to the background (D-22).
+///
+/// See ARCH §12.5, D-22.
 enum BackgroundExportKind {
   /// Exports stop and fail when backgrounded.
   none,
@@ -40,6 +42,8 @@ enum BackgroundExportKind {
 }
 
 /// Reasons `EditorCapabilities.unsupportedReason` may carry.
+///
+/// See ARCH §12.5, D-17.
 abstract final class UnsupportedReasons {
   /// Android below API 29.
   static const String androidTooOld = 'android_too_old';
@@ -61,6 +65,8 @@ abstract final class UnsupportedReasons {
 }
 
 /// What this device's engine can do.
+///
+/// See ARCH §12.5.
 @immutable
 final class EditorCapabilities {
   /// Creates capabilities.
@@ -190,50 +196,68 @@ final class EditorCapabilities {
   /// RenderPlan versions the engine decodes.
   final List<int> planVersions;
 
-  /// A copy with the given fields replaced (tests and fakes).
+  /// A copy with the given fields replaced (tests and fakes). Pass `unsupportedReason: null`
+  /// explicitly to clear the reason.
   EditorCapabilities copyWith({
     bool? supported,
-    String? unsupportedReason,
+    Object? unsupportedReason = _keep,
     DeviceTier? tier,
     bool? lowMemoryDevice,
+    bool? h264Encode,
     bool? hevcEncode,
+    bool? hardwareH264,
+    bool? hardwareHevc,
     bool? movContainer,
+    Size? maxExportSize,
+    Map<int, int>? maxFpsByHeight,
     int? maxConcurrentVideoLayers,
     int? maxVisualSequences,
     int? maxTextureSize,
+    int? maxPreviewLongSide,
     BackgroundExportKind? backgroundKind,
+    bool? backgroundGpu,
     bool? voiceRecording,
+    bool? proxiesRecommended,
+    bool? holdFrame,
+    bool? fpsUpconversion,
     bool? externalDrop,
+    double? minSpeed,
+    double? maxSpeed,
+    double? maxAudioSpeed,
+    int? maxLutSize,
+    List<int>? planVersions,
   }) =>
       EditorCapabilities(
         supported: supported ?? this.supported,
-        unsupportedReason: unsupportedReason ?? this.unsupportedReason,
+        unsupportedReason: identical(unsupportedReason, _keep) ? this.unsupportedReason : unsupportedReason as String?,
         tier: tier ?? this.tier,
         lowMemoryDevice: lowMemoryDevice ?? this.lowMemoryDevice,
-        h264Encode: h264Encode,
+        h264Encode: h264Encode ?? this.h264Encode,
         hevcEncode: hevcEncode ?? this.hevcEncode,
-        hardwareH264: hardwareH264,
-        hardwareHevc: hardwareHevc,
+        hardwareH264: hardwareH264 ?? this.hardwareH264,
+        hardwareHevc: hardwareHevc ?? this.hardwareHevc,
         movContainer: movContainer ?? this.movContainer,
-        maxExportSize: maxExportSize,
-        maxFpsByHeight: maxFpsByHeight,
+        maxExportSize: maxExportSize ?? this.maxExportSize,
+        maxFpsByHeight: maxFpsByHeight ?? this.maxFpsByHeight,
         maxConcurrentVideoLayers: maxConcurrentVideoLayers ?? this.maxConcurrentVideoLayers,
         maxVisualSequences: maxVisualSequences ?? this.maxVisualSequences,
         maxTextureSize: maxTextureSize ?? this.maxTextureSize,
-        maxPreviewLongSide: maxPreviewLongSide,
+        maxPreviewLongSide: maxPreviewLongSide ?? this.maxPreviewLongSide,
         backgroundKind: backgroundKind ?? this.backgroundKind,
-        backgroundGpu: backgroundGpu,
+        backgroundGpu: backgroundGpu ?? this.backgroundGpu,
         voiceRecording: voiceRecording ?? this.voiceRecording,
-        proxiesRecommended: proxiesRecommended,
-        holdFrame: holdFrame,
-        fpsUpconversion: fpsUpconversion,
+        proxiesRecommended: proxiesRecommended ?? this.proxiesRecommended,
+        holdFrame: holdFrame ?? this.holdFrame,
+        fpsUpconversion: fpsUpconversion ?? this.fpsUpconversion,
         externalDrop: externalDrop ?? this.externalDrop,
-        minSpeed: minSpeed,
-        maxSpeed: maxSpeed,
-        maxAudioSpeed: maxAudioSpeed,
-        maxLutSize: maxLutSize,
-        planVersions: planVersions,
+        minSpeed: minSpeed ?? this.minSpeed,
+        maxSpeed: maxSpeed ?? this.maxSpeed,
+        maxAudioSpeed: maxAudioSpeed ?? this.maxAudioSpeed,
+        maxLutSize: maxLutSize ?? this.maxLutSize,
+        planVersions: planVersions ?? this.planVersions,
       );
+
+  static const Object _keep = Object();
 
   @override
   bool operator ==(Object other) =>
@@ -272,14 +296,28 @@ final class EditorCapabilities {
         unsupportedReason,
         tier,
         lowMemoryDevice,
+        h264Encode,
         hevcEncode,
+        hardwareH264,
+        hardwareHevc,
         movContainer,
         maxExportSize,
+        maxFpsByHeight.entries.fold<int>(0, (acc, e) => acc ^ Object.hash(e.key, e.value)),
         maxConcurrentVideoLayers,
         maxVisualSequences,
         maxTextureSize,
+        maxPreviewLongSide,
         backgroundKind,
+        backgroundGpu,
         voiceRecording,
+        proxiesRecommended,
+        holdFrame,
+        fpsUpconversion,
         externalDrop,
+        minSpeed,
+        maxSpeed,
+        maxAudioSpeed,
+        maxLutSize,
+        Object.hashAll(planVersions),
       ]);
 }

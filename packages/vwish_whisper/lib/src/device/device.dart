@@ -1,8 +1,10 @@
 // OWNER: AI-06
 //
-// Placeholder (D-33). AI-06 implements WhisperDeviceChannel over the `vwish/whisper` method and
-// event channels (ai.md §4.8): deviceProfile, availableMemory, freeDiskBytes, isNetworkMetered,
-// excludeFromBackup, background tasks; events thermal, memoryWarning, lowPower,
-// backgroundTaskExpiring.
+// Sub-barrel of `lib/src/device/` (ai.md §4.8): device profile, resource queries and events
+// from the `vwish_whisper/device` channels.
 
 library;
+
+export 'device_channel.dart';
+export 'device_events.dart';
+export 'device_profile.dart';

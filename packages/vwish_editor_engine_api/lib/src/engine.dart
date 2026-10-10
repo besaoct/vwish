@@ -15,21 +15,29 @@ import 'preview.dart';
 import 'recorder.dart';
 
 /// Media resolved for the engine (D-27: one type, defined in core).
+///
+/// See ARCH §12.1, D-27.
 typedef EngineMedia = ResolvedMedia;
 
 /// Whether a file can be edited on this device (≤ 300 ms).
+///
+/// See ARCH §12.1.
 @immutable
 sealed class EditCompatibility {
   const EditCompatibility();
 }
 
 /// The file can be edited.
+///
+/// See ARCH §12.1.
 final class Editable extends EditCompatibility {
   /// Creates the result.
   const Editable();
 }
 
 /// The file cannot be edited here; [code] selects platform-specific copy (UX-41).
+///
+/// See ARCH §12.1.
 final class NotEditable extends EditCompatibility {
   /// Creates the result.
   const NotEditable(this.code, [this.message = '']);
@@ -42,6 +50,8 @@ final class NotEditable extends EditCompatibility {
 }
 
 /// How much cached data to drop.
+///
+/// See ARCH §12.1, §18.3.
 enum CacheTrimLevel {
   /// Memory pressure: shrink in-memory caches to 25%.
   memoryPressure,
@@ -54,6 +64,8 @@ enum CacheTrimLevel {
 }
 
 /// Thermal state reported by the OS.
+///
+/// See ARCH §12.1, §18.2.
 enum ThermalLevel {
   /// Normal.
   nominal,
@@ -69,18 +81,24 @@ enum ThermalLevel {
 }
 
 /// Engine-wide signals.
+///
+/// See ARCH §12.1.
 @immutable
 sealed class EngineSignal {
   const EngineSignal();
 }
 
 /// The OS reported memory pressure.
+///
+/// See ARCH §12.1.
 final class MemoryWarningSignal extends EngineSignal {
   /// Creates the signal.
   const MemoryWarningSignal();
 }
 
 /// The thermal state changed.
+///
+/// See ARCH §12.1.
 final class ThermalSignal extends EngineSignal {
   /// Creates the signal.
   const ThermalSignal(this.level);
@@ -90,6 +108,8 @@ final class ThermalSignal extends EngineSignal {
 }
 
 /// The editor's rendering engine.
+///
+/// See ARCH §12.1.
 abstract interface class EditorEngine {
   /// Device capabilities (cached after the first call).
   Future<EditorCapabilities> capabilities();

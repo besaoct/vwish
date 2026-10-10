@@ -5,6 +5,8 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+const Object _keep = Object();
+
 /// Lowest supported speed (0.1×).
 const double minClipSpeed = 0.1;
 
@@ -31,6 +33,9 @@ final class ConstantSpeed extends SpeedSpec {
   /// Playback rate (1 = normal).
   final double rate;
 
+  /// A copy with the given rate.
+  ConstantSpeed copyWith({double? rate}) => ConstantSpeed(rate ?? this.rate);
+
   @override
   bool operator ==(Object other) => other is ConstantSpeed && other.rate == rate;
 
@@ -53,6 +58,9 @@ final class SpeedPoint {
   /// Speed in [[minClipSpeed], [maxClipSpeed]].
   final double y;
 
+  /// A copy with the given fields replaced.
+  SpeedPoint copyWith({double? x, double? y}) => SpeedPoint(x ?? this.x, y ?? this.y);
+
   @override
   bool operator ==(Object other) => other is SpeedPoint && other.x == x && other.y == y;
 
@@ -70,6 +78,12 @@ final class SpeedRamp extends SpeedSpec {
 
   /// `montage | hero | bullet | jumpCut | flashIn | flashOut`, or null for a custom curve.
   final String? presetId;
+
+  /// A copy with the given fields replaced; pass `presetId: null` to mark the curve custom.
+  SpeedRamp copyWith({List<SpeedPoint>? points, Object? presetId = _keep}) => SpeedRamp(
+        points ?? this.points,
+        presetId: identical(presetId, _keep) ? this.presetId : presetId as String?,
+      );
 
   @override
   bool operator ==(Object other) =>

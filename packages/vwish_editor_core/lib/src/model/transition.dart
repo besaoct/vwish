@@ -126,6 +126,10 @@ final class TransitionRef {
   /// Incoming item.
   final ItemId right;
 
+  /// A copy with the given fields replaced.
+  TransitionRef copyWith({TrackId? track, ItemId? left, ItemId? right}) =>
+      TransitionRef(track ?? this.track, left ?? this.left, right ?? this.right);
+
   @override
   bool operator ==(Object other) =>
       other is TransitionRef && other.track == track && other.left == left && other.right == right;

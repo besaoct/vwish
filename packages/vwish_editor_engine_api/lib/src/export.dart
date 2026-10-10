@@ -8,6 +8,8 @@ import 'package:vwish_editor_core/model.dart';
 import 'package:vwish_editor_core/plan.dart';
 
 /// What the engine does with a finished export when no Dart listener is attached (D-39).
+///
+/// See ARCH §12.4, D-39.
 enum ExportDetachedHandoff {
   /// Save natively to Photos / Gallery (default), then keep a one-shot record.
   saveToGallery,
@@ -17,6 +19,8 @@ enum ExportDetachedHandoff {
 }
 
 /// Export phases.
+///
+/// See ARCH §12.4, §14.
 enum ExportPhase {
   /// Sprite pre-pass, reader/writer setup.
   preparing,
@@ -29,6 +33,8 @@ enum ExportPhase {
 }
 
 /// A non-fatal note shown with progress or preflight.
+///
+/// See ARCH §12.4, §14.
 @immutable
 final class ExportWarning {
   /// Creates a warning.
@@ -43,6 +49,8 @@ final class ExportWarning {
 }
 
 /// Result of [ExportService.preflight].
+///
+/// See ARCH §12.4, §14.
 @immutable
 final class ExportPreflight {
   /// Creates a preflight result.
@@ -59,6 +67,8 @@ final class ExportPreflight {
 }
 
 /// Progress (≤ 4 Hz).
+///
+/// See ARCH §12.4, §14.
 @immutable
 final class ExportProgress {
   /// Creates a progress sample.
@@ -95,6 +105,8 @@ final class ExportProgress {
 }
 
 /// A finished export.
+///
+/// See ARCH §12.4, §14.
 @immutable
 final class ExportResult {
   /// Creates a result.
@@ -123,6 +135,8 @@ final class ExportResult {
 }
 
 /// A running export.
+///
+/// See ARCH §12.4, §14.
 abstract interface class ExportJob {
   /// Job id (stable across process death for resumable and detached records).
   String get id;
@@ -138,6 +152,8 @@ abstract interface class ExportJob {
 }
 
 /// Export jobs known to the engine when the editor (re)opens.
+///
+/// See ARCH §12.4, D-22, D-39.
 @immutable
 sealed class ExportJobState {
   const ExportJobState(this.jobId);
@@ -147,6 +163,8 @@ sealed class ExportJobState {
 }
 
 /// Still running: reattach to [job].
+///
+/// See ARCH §12.4, §14.
 final class ExportRunning extends ExportJobState {
   /// Creates the state.
   ExportRunning(this.job) : super(job.id);
@@ -156,6 +174,8 @@ final class ExportRunning extends ExportJobState {
 }
 
 /// iOS segment-resumable job with complete segments (UX offers "Resume export", D-22).
+///
+/// See ARCH §12.4, D-22.
 final class ExportResumable extends ExportJobState {
   /// Creates the state.
   const ExportResumable(super.jobId, {required this.doneFraction});
@@ -165,12 +185,16 @@ final class ExportResumable extends ExportJobState {
 }
 
 /// Ended by process death or an unrecoverable interruption (reported once).
+///
+/// See ARCH §12.4, D-22.
 final class ExportInterrupted extends ExportJobState {
   /// Creates the state.
   const ExportInterrupted(super.jobId);
 }
 
 /// Finished while no Dart listener was attached (reported once until consumed, D-39).
+///
+/// See ARCH §12.4, D-39.
 final class ExportCompletedWhileDetached extends ExportJobState {
   /// Creates the state.
   const ExportCompletedWhileDetached(super.jobId, {this.result, this.savedToGallery = false, this.savedUri, this.settings});
@@ -189,6 +213,8 @@ final class ExportCompletedWhileDetached extends ExportJobState {
 }
 
 /// Native export (iOS AVAssetReader/Writer with segmented resumable video; Android Transformer).
+///
+/// See ARCH §12.4, §14, D-22, D-39.
 abstract interface class ExportService {
   /// Checks the plan and settings on this device.
   Future<ExportPreflight> preflight(RenderPlan plan, EncodeSettings settings);

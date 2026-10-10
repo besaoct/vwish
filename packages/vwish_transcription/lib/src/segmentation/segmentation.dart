@@ -1,6 +1,21 @@
 // OWNER: AI-11
 //
-// Placeholder (D-33) created by AI-08's scaffold. AI-11 replaces this sub-barrel. Will declare:
-// CaptionSegmenter (deterministic DP), presets and script profiles, kinsoku, frame-grid edges.
+// Caption segmentation (ai.md §9): the deterministic DP segmenter, presets and script profiles,
+// kinsoku and function-word rules, frame-grid edges.
 
 library;
+
+export 'caption_layout.dart';
+export 'caption_segmenter.dart';
+export 'caption_text.dart'
+    show
+        FunctionWords,
+        endsClauseText,
+        endsSentenceText,
+        functionWordsByLanguage,
+        functionWordsFor,
+        isKinsokuNoEnd,
+        isKinsokuNoStart,
+        kinsokuNoLineEnd,
+        kinsokuNoLineStart;
+export 'timed_word.dart';

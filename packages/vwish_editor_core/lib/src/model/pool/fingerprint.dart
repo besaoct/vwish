@@ -12,6 +12,8 @@ import 'package:meta/meta.dart';
 
 import '../../time/time.dart';
 
+const Object _keep = Object();
+
 /// Bytes read from each end of a file for [computeQuickHash].
 const int quickHashChunkBytes = 64 * 1024;
 
@@ -45,6 +47,15 @@ final class MediaFingerprint {
   /// Probed duration.
   final TimeUs duration;
 
+  /// A copy with the given fields replaced; pass `modifiedMs: null` to clear it.
+  MediaFingerprint copyWith({int? sizeBytes, String? quickHash, Object? modifiedMs = _keep, TimeUs? duration}) =>
+      MediaFingerprint(
+        sizeBytes: sizeBytes ?? this.sizeBytes,
+        quickHash: quickHash ?? this.quickHash,
+        modifiedMs: identical(modifiedMs, _keep) ? this.modifiedMs : modifiedMs as int?,
+        duration: duration ?? this.duration,
+      );
+
   @override
   bool operator ==(Object other) =>
       other is MediaFingerprint &&
@@ -55,4 +66,7 @@ final class MediaFingerprint {
 
   @override
   int get hashCode => Object.hash(sizeBytes, quickHash, modifiedMs, duration);
+
+  @override
+  String toString() => 'MediaFingerprint($sizeBytes bytes, $quickHash)';
 }

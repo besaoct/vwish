@@ -35,6 +35,10 @@ final class AppRelativeLocator extends MediaLocator {
   /// Path relative to [root], `/`-separated.
   final String relPath;
 
+  /// A copy with the given fields replaced.
+  AppRelativeLocator copyWith({AppRoot? root, String? relPath}) =>
+      AppRelativeLocator(root ?? this.root, relPath ?? this.relPath);
+
   @override
   bool operator ==(Object other) => other is AppRelativeLocator && other.root == root && other.relPath == relPath;
 
@@ -50,6 +54,9 @@ final class FileLocator extends MediaLocator {
   /// Absolute path.
   final String path;
 
+  /// A copy with the given path.
+  FileLocator copyWith({String? path}) => FileLocator(path ?? this.path);
+
   @override
   bool operator ==(Object other) => other is FileLocator && other.path == path;
 
@@ -64,6 +71,9 @@ final class ContentUriLocator extends MediaLocator {
 
   /// The `content://` URI.
   final String uri;
+
+  /// A copy with the given URI.
+  ContentUriLocator copyWith({String? uri}) => ContentUriLocator(uri ?? this.uri);
 
   @override
   bool operator ==(Object other) => other is ContentUriLocator && other.uri == uri;
@@ -82,6 +92,10 @@ final class BookmarkLocator extends MediaLocator {
 
   /// Display/diagnostic hint only; never used to open the file.
   final String lastKnownPath;
+
+  /// A copy with the given fields replaced.
+  BookmarkLocator copyWith({String? bookmarkB64, String? lastKnownPath}) =>
+      BookmarkLocator(bookmarkB64 ?? this.bookmarkB64, lastKnownPath: lastKnownPath ?? this.lastKnownPath);
 
   @override
   bool operator ==(Object other) =>
